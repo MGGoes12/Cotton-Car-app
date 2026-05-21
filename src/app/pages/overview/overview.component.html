@@ -18,13 +18,13 @@
 
 <div *ngIf="user?.is_admin" class="page-card">
   <h3>Pending approvals</h3>
-  <div *ngIf="bookings.filter(b => b.status === 'pending').length === 0" class="small-text">No pending bookings.</div>
-  <div *ngFor="let booking of bookings.filter(b => b.status === 'pending')" class="booking-row">
+  <div *ngIf="getPendingBookings().length === 0" class="small-text">No pending bookings.</div>
+  <div *ngFor="let booking of getPendingBookings()" class="booking-row">
     <div><strong>{{ booking.booking_date }}</strong> {{ booking.start_time }} - {{ booking.end_time }} </div>
     <div>{{ booking.reason }}</div>
     <div class="small-text">Requested by {{ booking.user_email }}</div>
-    <button type="button" class="primary" (click)="supabase.approveBooking(booking.id as string, 'approved')">Approve</button>
-    <button type="button" class="secondary" (click)="supabase.approveBooking(booking.id as string, 'rejected')">Reject</button>
+    <button type="button" class="primary" (click)="approveBooking(booking.id as string, 'approved')">Approve</button>
+    <button type="button" class="secondary" (click)="approveBooking(booking.id as string, 'rejected')">Reject</button>
   </div>
 </div>
 

@@ -56,12 +56,12 @@ export class SupabaseService {
 
   private async syncProfile(user: User) {
     const email = user.email || '';
-    const { data, error } = await this.supabase
-      .from<UserProfile>('profiles')
+    const { data, error } = await (this.supabase
+      .from('profiles')
       .select('*')
       .eq('email', email)
       .limit(1)
-      .single();
+      .single() as any);
 
     if (error && error.code !== 'PGRST116') {
       console.error('Unable to load profile:', error.message);
@@ -70,11 +70,11 @@ export class SupabaseService {
     if (data) {
       this.authUser$.next(data);
     } else {
-      const insertResult = await this.supabase
-        .from<UserProfile>('profiles')
+      const insertResult = await (this.supabase
+        .from('profiles')
         .insert({ email, auth_user_id: user.id, is_admin: false })
         .select('*')
-        .single();
+        .single() as any);
 
       if (insertResult.data) {
         this.authUser$.next(insertResult.data);
@@ -106,7 +106,7 @@ export class SupabaseService {
     if (!user) {
       return [] as Booking[];
     }
-    const query = this.supabase.from<Booking>('bookings').select('*').order('booking_date', { ascending: true }).order('start_time', { ascending: true });
+    const query = this.supabase.from('bookings').select('*').order('booking_date', { ascending: true }).order('start_time', { ascending: true }) as any;
     if (!user.is_admin) {
       query.eq('user_profile_id', user.id);
     }
@@ -119,11 +119,11 @@ export class SupabaseService {
   }
 
   async createBooking(booking: Partial<Booking>) {
-    return this.supabase.from<Booking>('bookings').insert(booking).select('*');
+    return this.supabase.from('bookings').insert(booking).select('*') as any;
   }
 
   async updateBooking(id: string, updates: Partial<Booking>) {
-    return this.supabase.from<Booking>('bookings').update(updates).eq('id', id).select('*');
+    return this.supabase.from('bookings').update(updates).eq('id', id).select('*') as any;
   }
 
   async approveBooking(id: string, status: 'approved' | 'rejected') {
@@ -132,10 +132,10 @@ export class SupabaseService {
 
   async pullReport(fromDate: string, toDate: string) {
     return this.supabase
-      .from<Booking>('bookings')
+      .from('bookings')
       .select('*')
       .gte('booking_date', fromDate)
       .lte('booking_date', toDate)
-      .order('booking_date', { ascending: true });
+      .order('booking_date', { ascending: true }) as any;
   }
 }

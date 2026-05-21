@@ -26,7 +26,7 @@ export class OverviewComponent implements OnInit {
   message = '';
   error = '';
 
-  constructor(private supabase: SupabaseService, private router: Router) {}
+  constructor(public supabase: SupabaseService, private router: Router) {}
 
   ngOnInit(): void {
     this.supabase.authUser$.subscribe(async user => {
@@ -57,6 +57,22 @@ export class OverviewComponent implements OnInit {
       const value = this.formatDate(date);
       const matched = this.bookings.filter(b => b.booking_date === value);
       this.days.push({ value, label: String(i), booked: matched.length > 0, bookings: matched });
+    }
+  }
+
+  getPendingBookings(): Booking[] {
+    return this.bookings.filter(b => b.status === 'pending');
+  }
+
+  async approveBooking(id: string, status: 'approved' | 'rejected') {
+    try {
+      await this.supabase.updateBooking(id, { status });
+      this.message = `Booking ${status === 'approved' ? 'approved' : 'rejected'} successfully!`;
+      await this.loadBookings();
+      setTimeout(() => this.message = '', 3000);
+    } catch (err) {
+      this.error = `Failed to update booking: ${err}`;
+      setTimeout(() => this.error = '', 3000);
     }
   }
 
