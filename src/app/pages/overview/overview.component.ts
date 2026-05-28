@@ -64,7 +64,11 @@ export class OverviewComponent implements OnInit {
     return this.bookings.filter(b => b.status === 'pending');
   }
 
-  async approveBooking(id: string, status: 'approved' | 'rejected') {
+  async approveBooking(id: string | null | undefined, status: 'approved' | 'rejected') {
+    if (!id) {
+      this.error = 'Invalid booking ID';
+      return;
+    }
     try {
       await this.supabase.updateBooking(id, { status });
       this.message = `Booking ${status === 'approved' ? 'approved' : 'rejected'} successfully!`;

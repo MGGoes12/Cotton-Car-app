@@ -23,8 +23,8 @@
     <div><strong>{{ booking.booking_date }}</strong> {{ booking.start_time }} - {{ booking.end_time }} </div>
     <div>{{ booking.reason }}</div>
     <div class="small-text">Requested by {{ booking.user_email }}</div>
-    <button type="button" class="primary" (click)="approveBooking(booking.id as string, 'approved')">Approve</button>
-    <button type="button" class="secondary" (click)="approveBooking(booking.id as string, 'rejected')">Reject</button>
+    <button type="button" class="primary" (click)="approveBooking(booking.id, 'approved')">Approve</button>
+    <button type="button" class="secondary" (click)="approveBooking(booking.id, 'rejected')">Reject</button>
   </div>
 </div>
 
