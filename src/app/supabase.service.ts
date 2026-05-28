@@ -57,7 +57,7 @@ export class SupabaseService {
   private async syncProfile(user: User) {
     const email = user.email || '';
     const { data, error } = await (this.supabase
-      .from<UserProfile, UserProfile>('profiles')
+      .from('profiles')
       .select('*')
       .eq('email', email)
       .limit(1)
@@ -71,7 +71,7 @@ export class SupabaseService {
       this.authUser$.next(data);
     } else {
       const insertResult = await (this.supabase
-        .from<UserProfile, UserProfile>('profiles')
+        .from('profiles')
         .insert({ email, auth_user_id: user.id, is_admin: false })
         .select('*')
         .single() as any);
@@ -106,7 +106,7 @@ export class SupabaseService {
     if (!user) {
       return [] as Booking[];
     }
-    const query = this.supabase.from<Booking, Booking>('bookings').select('*').order('booking_date', { ascending: true }).order('start_time', { ascending: true }) as any;
+    const query = this.supabase.from('bookings').select('*').order('booking_date', { ascending: true }).order('start_time', { ascending: true }) as any;
     if (!user.is_admin) {
       query.eq('user_profile_id', user.id);
     }
@@ -119,11 +119,11 @@ export class SupabaseService {
   }
 
   async createBooking(booking: Partial<Booking>) {
-    return this.supabase.from<Booking, Booking>('bookings').insert(booking).select('*') as any;
+    return this.supabase.from('bookings').insert(booking).select('*') as any;
   }
 
   async updateBooking(id: string, updates: Partial<Booking>) {
-    return this.supabase.from<Booking, Booking>('bookings').update(updates).eq('id', id).select('*') as any;
+    return this.supabase.from('bookings').update(updates).eq('id', id).select('*') as any;
   }
 
   async approveBooking(id: string, status: 'approved' | 'rejected') {
@@ -132,7 +132,7 @@ export class SupabaseService {
 
   async pullReport(fromDate: string, toDate: string) {
     return this.supabase
-      .from<Booking, Booking>('bookings')
+      .from('bookings')
       .select('*')
       .gte('booking_date', fromDate)
       .lte('booking_date', toDate)
