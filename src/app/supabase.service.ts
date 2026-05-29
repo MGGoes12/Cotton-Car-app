@@ -55,10 +55,12 @@ export class SupabaseService {
       this.supabase = createClient('https://placeholder.supabase.co', 'placeholder-key');
       return;
     }
-    this.supabase = createClient(url, key);
+    // Strip any accidental path suffix (e.g. if SUPABASE_URL was set to .../rest/v1)
+    const cleanUrl = url.replace(/\/(rest\/v1|auth\/v1)\/?$/, '').replace(/\/$/, '');
+    this.supabase = createClient(cleanUrl, key);
     const serviceKey = environment.supabaseServiceKey;
     if (serviceKey && serviceKey.length > 20) {
-      this.supabaseAdmin = createClient(url, serviceKey);
+      this.supabaseAdmin = createClient(cleanUrl, serviceKey);
     }
     this.initializeAuth();
   }
