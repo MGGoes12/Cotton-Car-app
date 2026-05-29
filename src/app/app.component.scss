@@ -1,13 +1,183 @@
-header { background: linear-gradient(180deg, #ffffff 0%, #f7fafc 100%); }
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  padding: 0.85rem 1.1rem;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: saturate(180%) blur(12px);
+  border-bottom: 1px solid var(--line);
+}
 
-main { padding-bottom: 2rem; }
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-width: 0;
+}
+
+.brand-logo {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+  background: var(--grad);
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(5, 150, 105, 0.32);
+  flex: none;
+}
+
+.brand-text {
+  min-width: 0;
+}
+
+.brand-text h1 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.brand-text .small-text {
+  margin: 0;
+  font-size: 0.78rem;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-self: end;
+}
+
+.header-actions .primary,
+.header-actions .secondary {
+  padding: 0.55rem 0.9rem;
+  font-size: 0.85rem;
+}
+
+.user-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.7rem 0.3rem 0.3rem;
+  background: var(--surface-muted);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  max-width: 220px;
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--grad);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.82rem;
+  flex: none;
+}
 
 .user-email {
   font-size: 0.8rem;
-  color: #4a5568;
-  opacity: 0.85;
+  color: var(--ink-soft);
+  font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 180px;
+}
+
+/* Top nav (tablet/desktop) */
+.top-nav {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.top-nav a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 1rem;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--ink-soft);
+  background: transparent;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+
+.top-nav a:hover {
+  background: var(--brand-50);
+  color: var(--brand-800);
+}
+
+.top-nav a.active {
+  background: var(--grad);
+  color: #fff;
+  box-shadow: 0 8px 16px rgba(5, 150, 105, 0.28);
+}
+
+/* Bottom nav (mobile) */
+.bottom-nav {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .brand-text .small-text { display: none; }
+  .brand-logo { width: 38px; height: 38px; }
+  .brand-text h1 { font-size: 1rem; }
+  .user-email { display: none; }
+  .user-chip { padding: 0.25rem; max-width: none; }
+
+  .top-nav { display: none; }
+
+  main { padding-bottom: 5.5rem; }
+
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 60;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 0.4rem 0.5rem calc(0.4rem + env(safe-area-inset-bottom));
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: saturate(180%) blur(12px);
+    border-top: 1px solid var(--line);
+    box-shadow: 0 -6px 20px rgba(15, 23, 42, 0.06);
+  }
+
+  .bottom-nav a {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    flex: 1;
+    padding: 0.4rem 0;
+    text-decoration: none;
+    color: var(--ink-faint);
+    font-size: 0.68rem;
+    font-weight: 600;
+    border-radius: 0.8rem;
+    transition: color 0.18s ease;
+  }
+
+  .bottom-nav a.active {
+    color: var(--brand-700);
+  }
+
+  .bottom-nav a.active svg {
+    transform: translateY(-1px);
+  }
 }

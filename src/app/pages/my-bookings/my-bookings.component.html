@@ -1,22 +1,57 @@
 <div class="page-card">
-  <h2>My Bookings</h2>
-  <div *ngIf="bookings.length === 0" class="small-text">No bookings yet.</div>
+  <div class="card-head">
+    <span class="head-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+    </span>
+    <div>
+      <h2>My Bookings</h2>
+      <p class="small-text">Track your trips and log odometer readings.</p>
+    </div>
+  </div>
+
+  <div *ngIf="bookings.length === 0" class="empty-state">No bookings yet. Tap “New Booking” to reserve the car.</div>
+
   <div class="card-grid">
     <div *ngFor="let booking of bookings" class="booking-row">
-      <div><strong>{{ booking.booking_date }}</strong> <span class="badge" [ngClass]="booking.status">{{ booking.status }}</span></div>
+      <div class="row-top">
+        <strong>{{ booking.booking_date }}</strong>
+        <span class="badge" [ngClass]="booking.status">{{ booking.status }}</span>
+      </div>
       <div class="small-text">{{ booking.reason }}</div>
-      <div>{{ booking.all_day ? 'Full day' : booking.start_time + ' - ' + booking.end_time }}</div>
-      <div>Expected start KM: {{ booking.expected_start_km }}</div>
-      <div *ngIf="booking.actual_start_km != null">Actual start KM: {{ booking.actual_start_km }}</div>
-      <div *ngIf="booking.actual_end_km != null">Actual end KM: {{ booking.actual_end_km }} (used {{ booking.actual_end_km - booking.actual_start_km }})</div>
-      <div *ngIf="booking.return_time">Return: {{ booking.return_time }}</div>
-      <button type="button" class="secondary" (click)="setSelectedBooking(booking)">Update trip info</button>
-      <div *ngIf="user?.is_admin && booking.status !== 'completed'">
-        <button type="button" class="primary" (click)="approveBooking(booking, 'approved')">Approve</button>
-        <button type="button" class="secondary" (click)="approveBooking(booking, 'rejected')">Reject</button>
+
+      <div class="meta-grid">
+        <div class="meta">
+          <span class="meta-label">Time</span>
+          <span>{{ booking.all_day ? 'Full day' : booking.start_time + ' – ' + booking.end_time }}</span>
+        </div>
+        <div class="meta">
+          <span class="meta-label">Expected start KM</span>
+          <span>{{ booking.expected_start_km }}</span>
+        </div>
+        <div class="meta" *ngIf="booking.actual_start_km != null">
+          <span class="meta-label">Actual start KM</span>
+          <span>{{ booking.actual_start_km }}</span>
+        </div>
+        <div class="meta" *ngIf="booking.actual_end_km != null">
+          <span class="meta-label">Distance used</span>
+          <span>{{ booking.actual_end_km - booking.actual_start_km }} km</span>
+        </div>
+        <div class="meta" *ngIf="booking.return_time">
+          <span class="meta-label">Returned</span>
+          <span>{{ booking.return_time }}</span>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button type="button" class="secondary" (click)="setSelectedBooking(booking)">Update trip info</button>
+        <ng-container *ngIf="user?.is_admin && booking.status !== 'completed'">
+          <button type="button" class="primary" (click)="approveBooking(booking, 'approved')">Approve</button>
+          <button type="button" class="danger" (click)="approveBooking(booking, 'rejected')">Reject</button>
+        </ng-container>
       </div>
     </div>
   </div>
+
   <div *ngIf="error" class="error-message">{{ error }}</div>
   <div *ngIf="message" class="success-message">{{ message }}</div>
 </div>

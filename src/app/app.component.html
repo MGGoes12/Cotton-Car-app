@@ -2,22 +2,69 @@
   <div *ngIf="supabase.configMissing" class="config-error">
     ⚠ Supabase is not configured. Set <strong>SUPABASE_URL</strong> and <strong>SUPABASE_PUBLISHABLE_KEY</strong> in your environment variables and redeploy.
   </div>
-  <header>
-    <div>
-      <h1>Cotton Car Booking</h1>
-      <p class="small-text">Mobile-first family booking for the car</p>
+
+  <header class="app-header">
+    <div class="brand">
+      <span class="brand-logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 17H3v-5l2-5h11l3 5h2v5h-2" />
+          <circle cx="7.5" cy="17.5" r="1.6" />
+          <circle cx="16.5" cy="17.5" r="1.6" />
+        </svg>
+      </span>
+      <div class="brand-text">
+        <h1>Cotton Car Booking</h1>
+        <p class="small-text">Family booking for the car</p>
+      </div>
     </div>
-    <nav>
-      <span *ngIf="user" class="user-email">{{ user.email }}</span>
-      <a routerLink="/overview" class="secondary">Overview</a>
-      <a routerLink="/booking" class="secondary">New Booking</a>
-      <a routerLink="/my-bookings" class="secondary">My Bookings</a>
-      <button *ngIf="installAvailable" type="button" class="primary" (click)="installApp()">Install App</button>
-      <button *ngIf="user" type="button" class="secondary" (click)="logout()">Logout</button>
+
+    <div class="header-actions">
+      <span *ngIf="user" class="user-chip" [title]="user.email">
+        <span class="avatar">{{ (user.email || '?').charAt(0).toUpperCase() }}</span>
+        <span class="user-email">{{ user.email }}</span>
+      </span>
+      <button *ngIf="installAvailable" type="button" class="primary" (click)="installApp()">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>
+        Install
+      </button>
+      <button *ngIf="user" type="button" class="secondary" (click)="logout()">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+        Logout
+      </button>
+    </div>
+
+    <nav *ngIf="user" class="top-nav">
+      <a routerLink="/overview" routerLinkActive="active">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        Overview
+      </a>
+      <a routerLink="/booking" routerLinkActive="active">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+        New Booking
+      </a>
+      <a routerLink="/my-bookings" routerLinkActive="active">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        My Bookings
+      </a>
     </nav>
   </header>
 
   <main>
     <router-outlet></router-outlet>
   </main>
+
+  <nav *ngIf="user" class="bottom-nav">
+    <a routerLink="/overview" routerLinkActive="active">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      <span>Overview</span>
+    </a>
+    <a routerLink="/booking" routerLinkActive="active">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+      <span>Book</span>
+    </a>
+    <a routerLink="/my-bookings" routerLinkActive="active">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      <span>My Trips</span>
+    </a>
+  </nav>
 </div>

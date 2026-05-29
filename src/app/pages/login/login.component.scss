@@ -1,17 +1,50 @@
-.page-card { max-width: 480px; margin: 0 auto; }
-button { width: 100%; }
-
-.spinner {
-  display: inline-block;
-  width: 18px;
-  height: 18px;
-  border: 2px solid rgba(255,255,255,0.4);
-  border-top-color: #fff;
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-  vertical-align: middle;
+.login-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 1.5rem;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+.login-card {
+  max-width: 440px;
+  width: 100%;
+  text-align: center;
+}
+
+.login-card form {
+  text-align: left;
+  margin-top: 1.25rem;
+}
+
+.login-card .primary {
+  width: 100%;
+  margin-top: 0.25rem;
+}
+
+.login-icon {
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  margin: 0 auto 1rem;
+  border-radius: 18px;
+  background: var(--grad);
+  color: #fff;
+  box-shadow: 0 12px 26px rgba(5, 150, 105, 0.32);
+}
+
+.forgot-box {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px dashed var(--line);
+  text-align: left;
+}
+
+.forgot-box h3 {
+  margin: 0 0 0.35rem;
+}
+
+.forgot-box .secondary {
+  width: 100%;
+  margin-top: 0.75rem;
 }

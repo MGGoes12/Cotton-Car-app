@@ -1,11 +1,26 @@
 <div class="page-card">
-  <h2>Booking overview</h2>
-  <p class="small-text">Use the calendar to see booked days and pending approvals.</p>
-  <div class="small-text">Month: {{ currentMonth.toLocaleString('default', { month: 'long' }) }} {{ currentMonth.getFullYear() }}</div>
-  <div style="display:flex; gap:0.75rem; margin:0.75rem 0; flex-wrap:wrap;">
-    <button type="button" class="secondary" (click)="previousMonth()">Previous</button>
-    <button type="button" class="secondary" (click)="nextMonth()">Next</button>
-    <button *ngIf="user?.is_admin" type="button" class="primary" (click)="showReportModal = true">Pull report</button>
+  <div class="card-head">
+    <span class="head-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+    </span>
+    <div>
+      <h2>Booking overview</h2>
+      <p class="small-text">See booked days and pending approvals at a glance.</p>
+    </div>
+  </div>
+
+  <div class="cal-toolbar">
+    <button type="button" class="icon-btn" (click)="previousMonth()" aria-label="Previous month">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <div class="cal-month">{{ currentMonth.toLocaleString('default', { month: 'long' }) }} {{ currentMonth.getFullYear() }}</div>
+    <button type="button" class="icon-btn" (click)="nextMonth()" aria-label="Next month">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+    </button>
+    <button *ngIf="user?.is_admin" type="button" class="primary" (click)="showReportModal = true">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg>
+      Pull report
+    </button>
   </div>
 
   <div class="calendar-grid">
@@ -25,6 +40,11 @@
         </div>
       </div>
     </ng-container>
+  </div>
+
+  <div class="cal-legend">
+    <span><i class="dot part"></i> Timed booking</span>
+    <span><i class="dot all"></i> All day</span>
   </div>
 </div>
 
@@ -49,23 +69,31 @@
 
 <div *ngIf="user?.is_admin" class="page-card">
   <h3>Pending approvals</h3>
-  <div *ngIf="getPendingBookings().length === 0" class="small-text">No pending bookings.</div>
-  <div *ngFor="let booking of getPendingBookings()" class="booking-row">
-    <div><strong>{{ booking.booking_date }}</strong> {{ booking.start_time }} - {{ booking.end_time }} </div>
-    <div>{{ booking.reason }}</div>
-    <div class="small-text">Requested by {{ booking.user_email }}</div>
-    <button type="button" class="primary" (click)="approveBooking(booking.id, 'approved')">Approve</button>
-    <button type="button" class="secondary" (click)="approveBooking(booking.id, 'rejected')">Reject</button>
+  <div *ngIf="getPendingBookings().length === 0" class="empty-state">No pending bookings. You're all caught up.</div>
+  <div class="card-grid">
+    <div *ngFor="let booking of getPendingBookings()" class="booking-row">
+      <div class="row-title"><strong>{{ booking.booking_date }}</strong> <span class="small-text">{{ booking.all_day ? 'All day' : booking.start_time + ' – ' + booking.end_time }}</span></div>
+      <div>{{ booking.reason }}</div>
+      <div class="small-text">Requested by {{ booking.user_email }}</div>
+      <div class="actions">
+        <button type="button" class="primary" (click)="approveBooking(booking.id, 'approved')">Approve</button>
+        <button type="button" class="secondary" (click)="approveBooking(booking.id, 'rejected')">Reject</button>
+      </div>
+    </div>
   </div>
 </div>
 
 <div *ngIf="user?.is_admin" class="page-card">
   <h3>Password reset requests</h3>
-  <div *ngIf="pendingResets.length === 0" class="small-text">No pending password resets.</div>
-  <div *ngFor="let req of pendingResets" class="booking-row">
-    <div><strong>{{ req.email }}</strong></div>
-    <div class="small-text">Requested {{ req.created_at | date:'medium' }}</div>
-    <button type="button" class="primary" (click)="approveReset(req.id!, req.email)">Approve Reset</button>
+  <div *ngIf="pendingResets.length === 0" class="empty-state">No pending password resets.</div>
+  <div class="card-grid">
+    <div *ngFor="let req of pendingResets" class="booking-row">
+      <div><strong>{{ req.email }}</strong></div>
+      <div class="small-text">Requested {{ req.created_at | date:'medium' }}</div>
+      <div class="actions">
+        <button type="button" class="primary" (click)="approveReset(req.id!, req.email)">Approve Reset</button>
+      </div>
+    </div>
   </div>
 </div>
 

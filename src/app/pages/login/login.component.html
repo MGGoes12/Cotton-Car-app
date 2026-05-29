@@ -1,43 +1,53 @@
-<div class="page-card">
-  <ng-container *ngIf="loginView === 'signin'">
-    <h2>Sign In</h2>
-    <p class="small-text">Use your family email to access the booking app.</p>
-
-    <form (ngSubmit)="submit()">
-      <label>
-        Email
-        <input type="email" [(ngModel)]="email" name="email" required [disabled]="loading" />
-      </label>
-      <label>
-        Password
-        <input type="password" [(ngModel)]="password" name="password" required [disabled]="loading" />
-      </label>
-      <button type="submit" class="primary" [disabled]="loading">
-        <span *ngIf="loading" class="spinner"></span>
-        <span *ngIf="!loading">Sign In</span>
-      </button>
-    </form>
-
-    <div class="page-card" style="margin-top:1.25rem">
-      <h3>Forgot Password?</h3>
-      <p class="small-text">Enter your email above then tap the button below. The admin will approve your request and your next sign-in will prompt you to set a new password.</p>
-      <button type="button" class="secondary" (click)="requestReset()">Request Password Reset</button>
+<div class="login-wrap">
+  <div class="page-card login-card">
+    <div class="login-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 17H3v-5l2-5h11l3 5h2v5h-2" />
+        <circle cx="7.5" cy="17.5" r="1.6" />
+        <circle cx="16.5" cy="17.5" r="1.6" />
+      </svg>
     </div>
-  </ng-container>
 
-  <ng-container *ngIf="loginView === 'set-password'">
-    <h2>Set New Password</h2>
-    <p class="small-text">Your reset has been approved. Choose a new password for <strong>{{ email }}</strong>.</p>
+    <ng-container *ngIf="loginView === 'signin'">
+      <h2>Welcome back</h2>
+      <p class="small-text">Sign in with your family email to book the car.</p>
 
-    <form (ngSubmit)="setNewPassword()">
-      <label>
-        New Password
-        <input type="password" [(ngModel)]="newPassword" name="newPassword" required minlength="6" />
-      </label>
-      <button type="submit" class="primary">Set Password &amp; Sign In</button>
-    </form>
-  </ng-container>
+      <form (ngSubmit)="submit()">
+        <label>
+          Email
+          <input type="email" [(ngModel)]="email" name="email" placeholder="you@family.com" required [disabled]="loading" />
+        </label>
+        <label>
+          Password
+          <input type="password" [(ngModel)]="password" name="password" placeholder="••••••••" required [disabled]="loading" />
+        </label>
+        <button type="submit" class="primary" [disabled]="loading">
+          <span *ngIf="loading" class="spinner"></span>
+          <span *ngIf="!loading">Sign In</span>
+        </button>
+      </form>
 
-  <div *ngIf="error" class="error-message">{{ error }}</div>
-  <div *ngIf="message" class="success-message">{{ message }}</div>
+      <div class="forgot-box">
+        <h3>Forgot password?</h3>
+        <p class="small-text">Enter your email above, then request a reset. An admin approves it and your next sign-in lets you set a new password.</p>
+        <button type="button" class="secondary" (click)="requestReset()">Request Password Reset</button>
+      </div>
+    </ng-container>
+
+    <ng-container *ngIf="loginView === 'set-password'">
+      <h2>Set a new password</h2>
+      <p class="small-text">Your reset has been approved. Choose a new password for <strong>{{ email }}</strong>.</p>
+
+      <form (ngSubmit)="setNewPassword()">
+        <label>
+          New Password
+          <input type="password" [(ngModel)]="newPassword" name="newPassword" placeholder="At least 6 characters" required minlength="6" />
+        </label>
+        <button type="submit" class="primary">Set Password &amp; Sign In</button>
+      </form>
+    </ng-container>
+
+    <div *ngIf="error" class="error-message">{{ error }}</div>
+    <div *ngIf="message" class="success-message">{{ message }}</div>
+  </div>
 </div>
