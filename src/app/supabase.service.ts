@@ -82,29 +82,39 @@ export class SupabaseService {
 
   private async syncProfile(user: User) {
     const email = user.email || '';
+    // Query by auth_user_id so RLS policy (auth_user_id = auth.uid()) allows it
     const { data, error } = await (this.supabase
+      .from('profiles')
+      .select('*')
+      .eq('auth_user_id', user.id)
+      .limit(1)
+      .single() as any);
+
+    if (data) {
+      this.authUser$.next(data);
+      return;
+    }
+
+    // Profile not found by auth_user_id — try by email (handles legacy rows)
+    const { data: byEmail } = await (this.supabase
       .from('profiles')
       .select('*')
       .eq('email', email)
       .limit(1)
       .single() as any);
 
-    if (error && error.code !== 'PGRST116') {
-      console.error('Unable to load profile:', error.message);
+    if (byEmail) {
+      // Backfill auth_user_id if missing
+      if (!byEmail.auth_user_id) {
+        await (this.supabase.from('profiles').update({ auth_user_id: user.id }).eq('email', email) as any);
+        byEmail.auth_user_id = user.id;
+      }
+      this.authUser$.next(byEmail);
+      return;
     }
 
-    if (data) {
-      this.authUser$.next(data);
-    } else {
-      const insertResult = await (this.supabase
-        .from('profiles')
-        .insert({ email, auth_user_id: user.id, is_admin: false })
-        .select('*')
-        .single() as any);
-
-      if (insertResult.data) {
-        this.authUser$.next(insertResult.data);
-      }
+    if (error) {
+      console.error('Unable to load profile:', error.message);
     }
   }
 
