@@ -33,13 +33,17 @@ export class LoginComponent implements OnInit {
       this.error = 'Email and password are required.';
       return;
     }
-    const reset = await this.supabase.checkApprovedReset(this.email);
-    if (reset) {
-      this.approvedReset = reset;
-      this.loginView = 'set-password';
-      this.password = '';
-      return;
-    }
+    // Check for approved password reset - silently skip if table not set up yet
+    try {
+      const reset = await this.supabase.checkApprovedReset(this.email);
+      if (reset) {
+        this.approvedReset = reset;
+        this.loginView = 'set-password';
+        this.password = '';
+        return;
+      }
+    } catch { /* table may not exist yet */ }
+
     const { error } = await this.supabase.signIn(this.email, this.password);
     if (error) {
       this.error = error.message;
