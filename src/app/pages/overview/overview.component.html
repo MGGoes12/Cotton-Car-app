@@ -139,13 +139,47 @@
   </div>
 </div>
 
-<div *ngIf="showReport" class="page-card">
-  <h3>Report results</h3>
-  <div *ngIf="reportResults.length === 0" class="small-text">No bookings found.</div>
-  <div *ngFor="let booking of reportResults" class="booking-row">
-    <div><strong>{{ booking.booking_date }}</strong> {{ booking.reason }}</div>
-    <div>{{ booking.user_email }} | {{ booking.status }}</div>
-    <div>KM used: {{ booking.actual_end_km != null && booking.actual_start_km != null ? booking.actual_end_km - booking.actual_start_km : 'pending' }}</div>
+<div *ngIf="showReport" class="modal-backdrop" (click)="closeReport()">
+  <div class="modal-card report-modal" (click)="$event.stopPropagation()">
+    <div class="report-head">
+      <div>
+        <h3>Trip report</h3>
+        <p class="small-text">{{ reportFrom }} → {{ reportTo }}</p>
+      </div>
+      <button type="button" class="icon-btn" (click)="closeReport()" aria-label="Close">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="report-total">
+      <span>Total distance</span>
+      <strong>{{ reportTotalKm }} km</strong>
+    </div>
+
+    <div *ngIf="reportGroups.length === 0" class="empty-state">No bookings found for this period.</div>
+
+    <div class="report-list">
+      <div *ngFor="let group of reportGroups" class="report-user" [class.open]="group.expanded">
+        <button type="button" class="report-user-head" (click)="group.expanded = !group.expanded">
+          <span class="user-main">
+            <span class="avatar-sm">{{ group.name.charAt(0).toUpperCase() }}</span>
+            <span class="user-name">{{ group.name }}</span>
+          </span>
+          <span class="user-right">
+            <span class="user-total">{{ group.totalKm }} km</span>
+            <svg class="chev" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+          </span>
+        </button>
+
+        <div class="report-trips" *ngIf="group.expanded">
+          <div *ngFor="let trip of group.trips; let i = index" class="trip-row">
+            <span class="trip-index">Trip {{ i + 1 }}</span>
+            <span class="trip-reason">{{ trip.reason }}</span>
+            <span class="trip-km">{{ trip.km != null ? trip.km + ' km' : 'pending' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 

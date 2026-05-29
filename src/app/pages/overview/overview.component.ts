@@ -9,6 +9,20 @@ interface CalendarDay {
   bookings: Booking[];
 }
 
+interface ReportTrip {
+  reason: string;
+  date: string;
+  km: number | null;
+}
+
+interface ReportGroup {
+  email: string;
+  name: string;
+  totalKm: number;
+  trips: ReportTrip[];
+  expanded: boolean;
+}
+
 @Component({
   selector: 'app-overview',
   templateUrl: './overview.component.html',
@@ -32,6 +46,7 @@ export class OverviewComponent implements OnInit {
   reportResults: Booking[] = [];
   showReport = false;
   showReportModal = false;
+  reportGroups: ReportGroup[] = [];
   message = '';
   error = '';
 
@@ -172,8 +187,43 @@ export class OverviewComponent implements OnInit {
       return;
     }
     this.reportResults = data || [];
+    this.buildReportGroups();
     this.showReport = true;
     this.showReportModal = false;
+  }
+
+  private buildReportGroups() {
+    const map = new Map<string, ReportGroup>();
+    for (const b of this.reportResults) {
+      const email = b.user_email || 'Unknown';
+      let group = map.get(email);
+      if (!group) {
+        group = {
+          email,
+          name: email.includes('@') ? email.slice(0, email.indexOf('@')) : email,
+          totalKm: 0,
+          trips: [],
+          expanded: false
+        };
+        map.set(email, group);
+      }
+      const km = b.actual_end_km != null && b.actual_start_km != null
+        ? b.actual_end_km - b.actual_start_km
+        : null;
+      if (km != null) {
+        group.totalKm += km;
+      }
+      group.trips.push({ reason: b.reason || 'No reason given', date: b.booking_date, km });
+    }
+    this.reportGroups = Array.from(map.values()).sort((a, b) => b.totalKm - a.totalKm);
+  }
+
+  get reportTotalKm(): number {
+    return this.reportGroups.reduce((sum, g) => sum + g.totalKm, 0);
+  }
+
+  closeReport() {
+    this.showReport = false;
   }
 
   pastBookingDays(day: CalendarDay) {
