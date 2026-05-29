@@ -38,6 +38,45 @@
   </div>
 </div>
 
+<div *ngIf="user?.is_admin" class="page-card">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+    <h3 style="margin:0">Users</h3>
+    <button type="button" class="primary" (click)="showAddUser = !showAddUser">
+      {{ showAddUser ? 'Cancel' : '+ Add User' }}
+    </button>
+  </div>
+
+  <div *ngIf="showAddUser" style="margin-top:1rem">
+    <form (ngSubmit)="addUser()">
+      <label>
+        Email
+        <input type="email" [(ngModel)]="newUserEmail" name="newUserEmail" required />
+      </label>
+      <label>
+        Full Name (optional)
+        <input type="text" [(ngModel)]="newUserName" name="newUserName" />
+      </label>
+      <label>
+        Password
+        <input type="password" [(ngModel)]="newUserPassword" name="newUserPassword" required minlength="6" />
+      </label>
+      <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+        <input type="checkbox" [(ngModel)]="newUserIsAdmin" name="newUserIsAdmin" style="width:auto" />
+        Admin user
+      </label>
+      <button type="submit" class="primary">Create User</button>
+    </form>
+  </div>
+
+  <div style="margin-top:1rem">
+    <div *ngIf="users.length === 0" class="small-text">No users found.</div>
+    <div *ngFor="let u of users" class="booking-row">
+      <div><strong>{{ u.email }}</strong> <span *ngIf="u.full_name">— {{ u.full_name }}</span></div>
+      <div class="small-text">{{ u.is_admin ? 'Admin' : 'User' }}</div>
+    </div>
+  </div>
+</div>
+
 <div *ngIf="showReport" class="page-card">
   <h3>Report results</h3>
   <div *ngIf="reportResults.length === 0" class="small-text">No bookings found.</div>

@@ -18,6 +18,12 @@ export class OverviewComponent implements OnInit {
   user: UserProfile | null = null;
   bookings: Booking[] = [];
   pendingResets: PasswordResetRequest[] = [];
+  users: UserProfile[] = [];
+  showAddUser = false;
+  newUserEmail = '';
+  newUserName = '';
+  newUserPassword = '';
+  newUserIsAdmin = false;
   days: CalendarDay[] = [];
   currentMonth = new Date();
   reportFrom = this.formatDate(new Date());
@@ -39,6 +45,7 @@ export class OverviewComponent implements OnInit {
       await this.loadBookings();
       if (user.is_admin) {
         this.pendingResets = await this.supabase.getPendingPasswordResets();
+        this.users = await this.supabase.getUsers();
       }
     });
   }
@@ -94,6 +101,37 @@ export class OverviewComponent implements OnInit {
       this.message = `Password reset approved for ${email}. They can now set a new password on their next sign-in.`;
       this.pendingResets = await this.supabase.getPendingPasswordResets();
       setTimeout(() => this.message = '', 6000);
+    }
+  }
+
+  async addUser() {
+    this.error = '';
+    this.message = '';
+    if (!this.newUserEmail || !this.newUserPassword) {
+      this.error = 'Email and password are required.';
+      return;
+    }
+    if (this.newUserPassword.length < 6) {
+      this.error = 'Password must be at least 6 characters.';
+      return;
+    }
+    const result = await this.supabase.createUser(
+      this.newUserEmail.trim(),
+      this.newUserPassword,
+      this.newUserName.trim(),
+      this.newUserIsAdmin
+    );
+    if (result.error) {
+      this.error = result.error;
+    } else {
+      this.message = `User ${this.newUserEmail} created successfully.`;
+      this.newUserEmail = '';
+      this.newUserName = '';
+      this.newUserPassword = '';
+      this.newUserIsAdmin = false;
+      this.showAddUser = false;
+      this.users = await this.supabase.getUsers();
+      setTimeout(() => this.message = '', 4000);
     }
   }
 

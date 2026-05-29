@@ -17,6 +17,7 @@ if (fs.existsSync(distPath)) {
 
   html = html.replace('${SUPABASE_URL}', process.env.SUPABASE_URL || '');
   html = html.replace('${SUPABASE_PUBLISHABLE_KEY}', process.env.SUPABASE_PUBLISHABLE_KEY || '');
+  html = html.replace('${SUPABASE_SERVICE_ROLE}', process.env.SUPABASE_SERVICE_ROLE || '');
 
   fs.writeFileSync(distPath, html, 'utf8');
   console.log('✓ Environment variables injected into index.html');

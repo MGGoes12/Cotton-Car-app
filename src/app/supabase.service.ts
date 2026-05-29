@@ -110,16 +110,39 @@ export class SupabaseService {
     return this.supabase.auth.signInWithPassword({ email, password });
   }
 
-  async signUp(email: string, password: string) {
-    return this.supabase.auth.signUp({ email, password });
+  async createUser(email: string, password: string, fullName: string, isAdmin: boolean): Promise<{ error?: string }> {
+    if (!this.supabaseAdmin) {
+      return { error: 'Service key not configured. Add SUPABASE_SERVICE_ROLE to your environment variables.' };
+    }
+    const { data, error } = await this.supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true
+    });
+    if (error) return { error: error.message };
+    const { error: profileError } = await (this.supabaseAdmin
+      .from('profiles')
+      .insert({ email, auth_user_id: data.user.id, full_name: fullName || null, is_admin: isAdmin }) as any);
+    if (profileError) return { error: profileError.message };
+    return {};
   }
 
-  async resetPassword(email: string) {
-    return this.supabase.auth.resetPasswordForEmail(email);
+  async getUsers(): Promise<UserProfile[]> {
+    const { data, error } = await (this.supabase
+      .from('profiles')
+      .select('*')
+      .order('email', { ascending: true }) as any);
+    if (error) return [];
+    return data || [];
   }
 
   async requestPasswordReset(email: string) {
-    return this.supabase.from('password_reset_requests').insert({ email }) as any;
+    try {
+      const result = await (this.supabase.from('password_reset_requests').insert({ email }) as any);
+      return result;
+    } catch {
+      return { error: { message: 'Password reset table not set up yet. Run the SQL setup script in Supabase.' } };
+    }
   }
 
   async getPendingPasswordResets(): Promise<PasswordResetRequest[]> {
@@ -134,7 +157,7 @@ export class SupabaseService {
 
   async approvePasswordReset(id: string, email: string): Promise<{ error?: string }> {
     if (!this.supabaseAdmin) {
-      return { error: 'Service key not configured. Add SUPABASE_SERVICE_KEY to your environment.' };
+      return { error: 'Service key not configured. Add SUPABASE_SERVICE_ROLE to your environment.' };
     }
     const { data: profile, error: profileError } = await (this.supabase
       .from('profiles')
