@@ -60,7 +60,9 @@ export class SupabaseService {
     this.supabase = createClient(cleanUrl, key);
     const serviceKey = environment.supabaseServiceKey;
     if (serviceKey && serviceKey.length > 20) {
-      this.supabaseAdmin = createClient(cleanUrl, serviceKey);
+      this.supabaseAdmin = createClient(cleanUrl, serviceKey, {
+        auth: { autoRefreshToken: false, persistSession: false }
+      });
     }
     this.initializeAuth();
   }

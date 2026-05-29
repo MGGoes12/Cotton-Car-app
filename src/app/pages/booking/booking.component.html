@@ -46,7 +46,7 @@
       <div *ngIf="booking.actual_end_km != null">Actual end KM: {{ booking.actual_end_km }} (used {{ booking.actual_end_km - booking.actual_start_km }})</div>
       <div *ngIf="booking.return_time">Return: {{ booking.return_time }}</div>
       <button type="button" class="secondary" (click)="setSelectedBooking(booking)">Update trip info</button>
-      <div *ngIf="user?.is_admin">
+      <div *ngIf="user?.is_admin && booking.status !== 'completed'">
         <button type="button" class="primary" (click)="approveBooking(booking, 'approved')">Approve</button>
         <button type="button" class="secondary" (click)="approveBooking(booking, 'rejected')">Reject</button>
       </div>
@@ -54,22 +54,24 @@
   </div>
 </div>
 
-<div *ngIf="selectedBooking" class="page-card">
-  <h3>Update trip for {{ selectedBooking.booking_date }}</h3>
-  <form (ngSubmit)="saveOdometer()">
-    <label>
-      Actual start KM
-      <input type="number" [(ngModel)]="actualStartKm" name="actualStartKm" />
-    </label>
-    <label>
-      Actual end KM
-      <input type="number" [(ngModel)]="actualEndKm" name="actualEndKm" />
-    </label>
-    <label>
-      Return time
-      <input type="time" [(ngModel)]="returnTime" name="returnTime" />
-    </label>
-    <button type="submit" class="primary">Save trip data</button>
-    <button type="button" class="secondary" (click)="selectedBooking = null">Cancel</button>
-  </form>
+<div *ngIf="selectedBooking" class="modal-backdrop" (click)="selectedBooking = null">
+  <div class="modal-card" (click)="$event.stopPropagation()">
+    <h3>Update trip for {{ selectedBooking.booking_date }}</h3>
+    <form (ngSubmit)="saveOdometer()">
+      <label>
+        Actual start KM
+        <input type="number" [(ngModel)]="actualStartKm" name="actualStartKm" />
+      </label>
+      <label>
+        Actual end KM
+        <input type="number" [(ngModel)]="actualEndKm" name="actualEndKm" />
+      </label>
+      <label>
+        Return time
+        <input type="time" [(ngModel)]="returnTime" name="returnTime" />
+      </label>
+      <button type="submit" class="primary">Save trip data</button>
+      <button type="button" class="secondary" (click)="selectedBooking = null">Cancel</button>
+    </form>
+  </div>
 </div>
