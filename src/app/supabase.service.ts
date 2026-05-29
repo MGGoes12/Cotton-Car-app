@@ -33,9 +33,20 @@ export interface Booking {
 export class SupabaseService {
   private supabase: SupabaseClient;
   public authUser$ = new BehaviorSubject<UserProfile | null>(null);
+  public configMissing = false;
 
   constructor() {
-    this.supabase = createClient(environment.supabaseUrl, environment.supabaseKey);
+    const url = environment.supabaseUrl;
+    const key = environment.supabaseKey;
+    const validUrl = url && url.startsWith('https://') && !url.includes('YOUR_SUPABASE');
+    const validKey = key && key.length > 20 && !key.includes('YOUR_SUPABASE');
+    if (!validUrl || !validKey) {
+      console.error('Supabase credentials are not configured.');
+      this.configMissing = true;
+      this.supabase = createClient('https://placeholder.supabase.co', 'placeholder-key');
+      return;
+    }
+    this.supabase = createClient(url, key);
     this.initializeAuth();
   }
 
