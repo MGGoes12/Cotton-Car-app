@@ -1,4 +1,7 @@
 <div class="app-shell">
+  <div *ngIf="supabase.configMissing" class="config-error">
+    ⚠ Supabase is not configured. Set <strong>SUPABASE_URL</strong> and <strong>SUPABASE_PUBLISHABLE_KEY</strong> in your environment variables and redeploy.
+  </div>
   <header>
     <div>
       <h1>Cotton Car Booking</h1>
