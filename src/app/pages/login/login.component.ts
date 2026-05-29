@@ -8,12 +8,13 @@ import { SupabaseService } from '../../supabase.service';
   styleUrls: ['./login.component.scss']
 })
 export class LoginComponent implements OnInit {
-  mode: 'signin' | 'signup' = 'signin';
+  loginView: 'signin' | 'set-password' = 'signin';
   email = '';
   password = '';
+  newPassword = '';
   message = '';
   error = '';
-  resetEmail = '';
+  private approvedReset: { id: string; temp_password: string } | null = null;
 
   constructor(private supabase: SupabaseService, private router: Router) {}
 
@@ -32,33 +33,55 @@ export class LoginComponent implements OnInit {
       this.error = 'Email and password are required.';
       return;
     }
-    if (this.mode === 'signin') {
-      const { error } = await this.supabase.signIn(this.email, this.password);
-      if (error) {
-        this.error = error.message;
-      }
-    } else {
-      const { error } = await this.supabase.signUp(this.email, this.password);
-      if (error) {
-        this.error = error.message;
-      } else {
-        this.message = 'Sign-up sent. Please check email to verify and then sign in.';
-      }
+    const reset = await this.supabase.checkApprovedReset(this.email);
+    if (reset) {
+      this.approvedReset = reset;
+      this.loginView = 'set-password';
+      this.password = '';
+      return;
+    }
+    const { error } = await this.supabase.signIn(this.email, this.password);
+    if (error) {
+      this.error = error.message;
     }
   }
 
-  async resetPassword() {
+  async setNewPassword() {
     this.error = '';
-    this.message = '';
-    if (!this.resetEmail) {
-      this.error = 'Enter the email address to reset password.';
+    if (!this.newPassword || this.newPassword.length < 6) {
+      this.error = 'Password must be at least 6 characters.';
       return;
     }
-    const { error } = await this.supabase.resetPassword(this.resetEmail);
+    if (!this.approvedReset?.temp_password) {
+      this.error = 'Reset data missing. Please try again.';
+      return;
+    }
+    const { error: signInError } = await this.supabase.signIn(this.email, this.approvedReset.temp_password);
+    if (signInError) {
+      this.error = 'Could not verify reset. Please contact the admin.';
+      return;
+    }
+    const { error: updateError } = await this.supabase.updateUserPassword(this.newPassword);
+    if (updateError) {
+      this.error = updateError.message;
+      return;
+    }
+    await this.supabase.clearPasswordReset(this.email);
+  }
+
+  async requestReset() {
+    this.error = '';
+    this.message = '';
+    if (!this.email) {
+      this.error = 'Enter your email address above first.';
+      return;
+    }
+    const { error } = await this.supabase.requestPasswordReset(this.email);
     if (error) {
       this.error = error.message;
     } else {
-      this.message = 'Password reset email sent. Follow the link to set a new password.';
+      this.message = 'Reset request sent. The admin will approve it and let you know.';
     }
   }
 }
+

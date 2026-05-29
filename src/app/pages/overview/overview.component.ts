@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
-import { Booking, SupabaseService, UserProfile } from '../../supabase.service';
+import { Booking, PasswordResetRequest, SupabaseService, UserProfile } from '../../supabase.service';
 
 interface CalendarDay {
   value: string;
@@ -17,6 +17,7 @@ interface CalendarDay {
 export class OverviewComponent implements OnInit {
   user: UserProfile | null = null;
   bookings: Booking[] = [];
+  pendingResets: PasswordResetRequest[] = [];
   days: CalendarDay[] = [];
   currentMonth = new Date();
   reportFrom = this.formatDate(new Date());
@@ -36,6 +37,9 @@ export class OverviewComponent implements OnInit {
         return;
       }
       await this.loadBookings();
+      if (user.is_admin) {
+        this.pendingResets = await this.supabase.getPendingPasswordResets();
+      }
     });
   }
 
@@ -77,6 +81,19 @@ export class OverviewComponent implements OnInit {
     } catch (err) {
       this.error = `Failed to update booking: ${err}`;
       setTimeout(() => this.error = '', 3000);
+    }
+  }
+
+  async approveReset(id: string, email: string) {
+    this.error = '';
+    this.message = '';
+    const result = await this.supabase.approvePasswordReset(id, email);
+    if (result.error) {
+      this.error = result.error;
+    } else {
+      this.message = `Password reset approved for ${email}. They can now set a new password on their next sign-in.`;
+      this.pendingResets = await this.supabase.getPendingPasswordResets();
+      setTimeout(() => this.message = '', 6000);
     }
   }
 

@@ -54,3 +54,29 @@ $$ language plpgsql;
 create trigger bookings_updated_at
   before update on bookings
   for each row execute function update_timestamp();
+
+-- Password reset requests (admin-approval flow, no email)
+create table password_reset_requests (
+  id uuid primary key default gen_random_uuid(),
+  email text not null,
+  status text not null default 'pending' check (status in ('pending', 'approved')),
+  temp_password text,
+  created_at timestamptz not null default now()
+);
+
+-- Allow unauthenticated users to insert reset requests and read their own status
+-- Run these in the Supabase SQL editor after creating the table:
+--
+--   alter table password_reset_requests enable row level security;
+--
+--   create policy "Anyone can request a reset"
+--     on password_reset_requests for insert
+--     with check (true);
+--
+--   create policy "Anyone can read reset status by email"
+--     on password_reset_requests for select
+--     using (true);
+--
+--   create policy "Service role can update"
+--     on password_reset_requests for update
+--     using (true);

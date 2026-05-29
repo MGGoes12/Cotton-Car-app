@@ -1,32 +1,39 @@
 <div class="page-card">
-  <h2>{{ mode === 'signin' ? 'Sign In' : 'Create Account' }}</h2>
-  <p class="small-text">Use your family email to access the booking app.</p>
+  <ng-container *ngIf="loginView === 'signin'">
+    <h2>Sign In</h2>
+    <p class="small-text">Use your family email to access the booking app.</p>
 
-  <form (ngSubmit)="submit()">
-    <label>
-      Email
-      <input type="email" [(ngModel)]="email" name="email" required />
-    </label>
-    <label>
-      Password
-      <input type="password" [(ngModel)]="password" name="password" required />
-    </label>
+    <form (ngSubmit)="submit()">
+      <label>
+        Email
+        <input type="email" [(ngModel)]="email" name="email" required />
+      </label>
+      <label>
+        Password
+        <input type="password" [(ngModel)]="password" name="password" required />
+      </label>
+      <button type="submit" class="primary">Sign In</button>
+    </form>
 
-    <button type="submit" class="primary">{{ mode === 'signin' ? 'Sign In' : 'Sign Up' }}</button>
-  </form>
+    <div class="page-card" style="margin-top:1.25rem">
+      <h3>Forgot Password?</h3>
+      <p class="small-text">Enter your email above then tap the button below. The admin will approve your request and your next sign-in will prompt you to set a new password.</p>
+      <button type="button" class="secondary" (click)="requestReset()">Request Password Reset</button>
+    </div>
+  </ng-container>
 
-  <button type="button" class="secondary" (click)="mode = mode === 'signin' ? 'signup' : 'signin'">
-    {{ mode === 'signin' ? 'Switch to Sign Up' : 'Switch to Sign In' }}
-  </button>
+  <ng-container *ngIf="loginView === 'set-password'">
+    <h2>Set New Password</h2>
+    <p class="small-text">Your reset has been approved. Choose a new password for <strong>{{ email }}</strong>.</p>
 
-  <div class="page-card">
-    <h3>Forgot Password?</h3>
-    <label>
-      Reset email
-      <input type="email" [(ngModel)]="resetEmail" name="resetEmail" />
-    </label>
-    <button type="button" class="secondary" (click)="resetPassword()">Send reset link</button>
-  </div>
+    <form (ngSubmit)="setNewPassword()">
+      <label>
+        New Password
+        <input type="password" [(ngModel)]="newPassword" name="newPassword" required minlength="6" />
+      </label>
+      <button type="submit" class="primary">Set Password &amp; Sign In</button>
+    </form>
+  </ng-container>
 
   <div *ngIf="error" class="error-message">{{ error }}</div>
   <div *ngIf="message" class="success-message">{{ message }}</div>

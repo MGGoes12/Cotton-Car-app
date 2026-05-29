@@ -28,6 +28,16 @@
   </div>
 </div>
 
+<div *ngIf="user?.is_admin" class="page-card">
+  <h3>Password reset requests</h3>
+  <div *ngIf="pendingResets.length === 0" class="small-text">No pending password resets.</div>
+  <div *ngFor="let req of pendingResets" class="booking-row">
+    <div><strong>{{ req.email }}</strong></div>
+    <div class="small-text">Requested {{ req.created_at | date:'medium' }}</div>
+    <button type="button" class="primary" (click)="approveReset(req.id!, req.email)">Approve Reset</button>
+  </div>
+</div>
+
 <div *ngIf="showReport" class="page-card">
   <h3>Report results</h3>
   <div *ngIf="reportResults.length === 0" class="small-text">No bookings found.</div>

@@ -11,6 +11,14 @@ export interface UserProfile {
   is_admin: boolean;
 }
 
+export interface PasswordResetRequest {
+  id?: string;
+  email: string;
+  status: 'pending' | 'approved';
+  temp_password?: string;
+  created_at?: string;
+}
+
 export interface Booking {
   id?: string;
   user_profile_id: string;
@@ -32,6 +40,7 @@ export interface Booking {
 @Injectable({ providedIn: 'root' })
 export class SupabaseService {
   private supabase: SupabaseClient;
+  private supabaseAdmin: SupabaseClient | null = null;
   public authUser$ = new BehaviorSubject<UserProfile | null>(null);
   public configMissing = false;
 
@@ -47,6 +56,10 @@ export class SupabaseService {
       return;
     }
     this.supabase = createClient(url, key);
+    const serviceKey = environment.supabaseServiceKey;
+    if (serviceKey && serviceKey.length > 20) {
+      this.supabaseAdmin = createClient(url, serviceKey);
+    }
     this.initializeAuth();
   }
 
@@ -102,9 +115,70 @@ export class SupabaseService {
   }
 
   async resetPassword(email: string) {
-    return this.supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin
-    });
+    return this.supabase.auth.resetPasswordForEmail(email);
+  }
+
+  async requestPasswordReset(email: string) {
+    return this.supabase.from('password_reset_requests').insert({ email }) as any;
+  }
+
+  async getPendingPasswordResets(): Promise<PasswordResetRequest[]> {
+    const { data, error } = await (this.supabase
+      .from('password_reset_requests')
+      .select('*')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: true }) as any);
+    if (error) return [];
+    return data || [];
+  }
+
+  async approvePasswordReset(id: string, email: string): Promise<{ error?: string }> {
+    if (!this.supabaseAdmin) {
+      return { error: 'Service key not configured. Add SUPABASE_SERVICE_KEY to your environment.' };
+    }
+    const { data: profile, error: profileError } = await (this.supabase
+      .from('profiles')
+      .select('auth_user_id')
+      .eq('email', email)
+      .single() as any);
+    if (profileError || !profile?.auth_user_id) {
+      return { error: 'User profile not found for that email.' };
+    }
+    const tempPassword =
+      Math.random().toString(36).slice(2, 8) +
+      Math.random().toString(36).slice(2, 6).toUpperCase() +
+      Math.floor(Math.random() * 90 + 10);
+    const { error: authError } = await this.supabaseAdmin.auth.admin.updateUserById(
+      profile.auth_user_id,
+      { password: tempPassword }
+    );
+    if (authError) return { error: authError.message };
+    const { error: dbError } = await (this.supabase
+      .from('password_reset_requests')
+      .update({ status: 'approved', temp_password: tempPassword })
+      .eq('id', id) as any);
+    if (dbError) return { error: dbError.message };
+    return {};
+  }
+
+  async checkApprovedReset(email: string): Promise<{ id: string; temp_password: string } | null> {
+    const { data, error } = await (this.supabase
+      .from('password_reset_requests')
+      .select('id, temp_password')
+      .eq('email', email)
+      .eq('status', 'approved')
+      .limit(1)
+      .single() as any);
+    if (error || !data) return null;
+    return data;
+  }
+
+  async clearPasswordReset(email: string) {
+    return this.supabase.from('password_reset_requests').delete().eq('email', email) as any;
+  }
+
+  async updateUserPassword(newPassword: string) {
+    return this.supabase.auth.updateUser({ password: newPassword });
   }
 
   async signOut() {

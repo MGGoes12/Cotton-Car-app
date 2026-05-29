@@ -1,7 +1,8 @@
 export const environment = {
   production: true,
   supabaseUrl: getEnv('SUPABASE_URL', 'https://YOUR_SUPABASE_PROJECT_URL'),
-  supabaseKey: getEnv('SUPABASE_PUBLISHABLE_KEY', 'YOUR_SUPABASE_PUBLISHABLE_KEY')
+  supabaseKey: getEnv('SUPABASE_PUBLISHABLE_KEY', 'YOUR_SUPABASE_PUBLISHABLE_KEY'),
+  supabaseServiceKey: getEnv('SUPABASE_SERVICE_KEY', '')
 };
 
 function getEnv(key: string, defaultValue: string): string {
