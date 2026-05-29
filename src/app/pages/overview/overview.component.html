@@ -5,13 +5,44 @@
   <div style="display:flex; gap:0.75rem; margin:0.75rem 0; flex-wrap:wrap;">
     <button type="button" class="secondary" (click)="previousMonth()">Previous</button>
     <button type="button" class="secondary" (click)="nextMonth()">Next</button>
-    <button type="button" class="primary" (click)="pullReport()">Pull report</button>
+    <button *ngIf="user?.is_admin" type="button" class="primary" (click)="showReportModal = true">Pull report</button>
   </div>
 
   <div class="calendar-grid">
-    <div *ngFor="let day of days" [class.calendar-day]="true" [class.booked]="day.booked">
-      <div class="day-number">{{ day.label }}</div>
-      <div *ngIf="day.booked" class="small-text">{{ day.bookings.length }} booking(s)</div>
+    <div class="cal-header">Sun</div>
+    <div class="cal-header">Mon</div>
+    <div class="cal-header">Tue</div>
+    <div class="cal-header">Wed</div>
+    <div class="cal-header">Thu</div>
+    <div class="cal-header">Fri</div>
+    <div class="cal-header">Sat</div>
+    <ng-container *ngFor="let day of days">
+      <div [class]="'calendar-day' + (day.value ? '' : ' empty') + (day.booked ? ' booked' : '')">
+        <div *ngIf="day.value" class="day-number">{{ day.label }}</div>
+        <div *ngFor="let b of day.bookings" class="booking-chip" [class.all-day]="b.all_day" [title]="b.reason + ' (' + b.user_email + ')'">
+          <span class="chip-time">{{ b.all_day ? 'All day' : (b.start_time | slice:0:5) + '–' + (b.end_time | slice:0:5) }}</span>
+          <span class="chip-name">{{ b.user_email | slice:0:(b.user_email.indexOf('@')) }}</span>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+</div>
+
+<!-- Report date picker modal -->
+<div *ngIf="showReportModal" class="modal-backdrop" (click)="showReportModal = false">
+  <div class="modal-card" (click)="$event.stopPropagation()">
+    <h3>Pull Report</h3>
+    <label>
+      From
+      <input type="date" [(ngModel)]="reportFrom" name="reportFrom" />
+    </label>
+    <label>
+      To
+      <input type="date" [(ngModel)]="reportTo" name="reportTo" />
+    </label>
+    <div style="display:flex; gap:0.75rem; margin-top:1rem;">
+      <button type="button" class="primary" (click)="pullReport()">Generate</button>
+      <button type="button" class="secondary" (click)="showReportModal = false">Cancel</button>
     </div>
   </div>
 </div>
@@ -70,9 +101,12 @@
 
   <div style="margin-top:1rem">
     <div *ngIf="users.length === 0" class="small-text">No users found.</div>
-    <div *ngFor="let u of users" class="booking-row">
-      <div><strong>{{ u.email }}</strong> <span *ngIf="u.full_name">— {{ u.full_name }}</span></div>
-      <div class="small-text">{{ u.is_admin ? 'Admin' : 'User' }}</div>
+    <div *ngFor="let u of users" class="booking-row" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+      <div>
+        <strong>{{ u.email }}</strong> <span *ngIf="u.full_name">— {{ u.full_name }}</span>
+        <div class="small-text">{{ u.is_admin ? 'Admin' : 'User' }}</div>
+      </div>
+      <button *ngIf="u.email !== user?.email" type="button" class="danger" (click)="deleteUser(u)">Delete</button>
     </div>
   </div>
 </div>
@@ -85,20 +119,6 @@
     <div>{{ booking.user_email }} | {{ booking.status }}</div>
     <div>KM used: {{ booking.actual_end_km != null && booking.actual_start_km != null ? booking.actual_end_km - booking.actual_start_km : 'pending' }}</div>
   </div>
-</div>
-
-<div class="page-card">
-  <h3>Report filter</h3>
-  <form>
-    <label>
-      From
-      <input type="date" [(ngModel)]="reportFrom" name="reportFrom" />
-    </label>
-    <label>
-      To
-      <input type="date" [(ngModel)]="reportTo" name="reportTo" />
-    </label>
-  </form>
 </div>
 
 <div *ngIf="error" class="error-message">{{ error }}</div>

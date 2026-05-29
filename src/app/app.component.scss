@@ -1,3 +1,13 @@
 header { background: linear-gradient(180deg, #ffffff 0%, #f7fafc 100%); }
 
 main { padding-bottom: 2rem; }
+
+.user-email {
+  font-size: 0.8rem;
+  color: #4a5568;
+  opacity: 0.85;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}

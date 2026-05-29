@@ -9,7 +9,8 @@ import { Booking, SupabaseService, UserProfile } from '../../supabase.service';
 })
 export class BookingComponent implements OnInit {
   user: UserProfile | null = null;
-  bookings: Booking[] = [];
+  bookings: Booking[] = [];        // user's own bookings
+  allBookings: Booking[] = [];     // all bookings for overlap checking
   bookingDate = this.formatDate(new Date());
   startTime = '09:00';
   endTime = '17:00';
@@ -42,6 +43,7 @@ export class BookingComponent implements OnInit {
 
   async loadBookings() {
     this.bookings = await this.supabase.getBookings();
+    this.allBookings = await this.supabase.getAllBookings();
   }
 
   async submitBooking() {
@@ -60,15 +62,20 @@ export class BookingComponent implements OnInit {
       this.error = 'End time must be after start time.';
       return;
     }
-    const pending = this.bookings.filter(b => b.status !== 'rejected');
-    const overlap = pending.some(b => this.hasOverlap(b, {
+    const proposed = {
       booking_date: this.bookingDate,
       start_time: this.startTime,
       end_time: end,
       all_day: this.allDay
-    } as Booking));
-    if (overlap) {
-      this.error = 'This booking conflicts with another booking on the same day.';
+    } as Booking;
+    const conflicting = this.allBookings.find(b =>
+      b.status !== 'rejected' && this.hasOverlap(b, proposed)
+    );
+    if (conflicting) {
+      const isOwnBooking = conflicting.user_profile_id === this.user!.id;
+      this.error = isOwnBooking
+        ? 'You already have a booking at this time.'
+        : 'Another user has already booked the car at this time.';
       return;
     }
 

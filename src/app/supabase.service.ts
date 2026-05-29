@@ -126,16 +126,30 @@ export class SupabaseService {
     if (!this.supabaseAdmin) {
       return { error: 'Service key not configured. Add SUPABASE_SERVICE_ROLE to your environment variables.' };
     }
-    const { data, error } = await this.supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true
-    });
-    if (error) return { error: error.message };
+    // Check if auth user already exists (failed previous attempt)
+    let authUserId: string;
+    const { data: existing } = await this.supabaseAdmin.auth.admin.listUsers();
+    const existingUser = existing?.users?.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
+    if (existingUser) {
+      authUserId = existingUser.id;
+    } else {
+      const { data, error } = await this.supabaseAdmin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true
+      });
+      if (error) return { error: error.message };
+      authUserId = data.user.id;
+    }
+    // Upsert profile using admin client to bypass RLS
     const { error: profileError } = await (this.supabaseAdmin
       .from('profiles')
-      .insert({ email, auth_user_id: data.user.id, full_name: fullName || null, is_admin: isAdmin }) as any);
+      .upsert({ email, auth_user_id: authUserId, full_name: fullName || null, is_admin: isAdmin }, { onConflict: 'email' }) as any);
     if (profileError) return { error: profileError.message };
+    // If we found an existing auth user without profile, also set their password
+    if (existingUser) {
+      await this.supabaseAdmin.auth.admin.updateUserById(authUserId, { password });
+    }
     return {};
   }
 
@@ -144,6 +158,28 @@ export class SupabaseService {
       .from('profiles')
       .select('*')
       .order('email', { ascending: true }) as any);
+    if (error) return [];
+    return data || [];
+  }
+
+  async deleteUser(profileId: string, authUserId: string): Promise<{ error?: string }> {
+    if (!this.supabaseAdmin) {
+      return { error: 'Service key not configured. Add SUPABASE_SERVICE_ROLE to your environment variables.' };
+    }
+    // Delete auth user (cascades to profile via auth_user_id)
+    const { error: authError } = await this.supabaseAdmin.auth.admin.deleteUser(authUserId);
+    if (authError) return { error: authError.message };
+    // Also delete profile explicitly in case cascade isn't set up
+    await (this.supabase.from('profiles').delete().eq('id', profileId) as any);
+    return {};
+  }
+
+  async getAllBookings(): Promise<Booking[]> {
+    const { data, error } = await (this.supabase
+      .from('bookings')
+      .select('*')
+      .order('booking_date', { ascending: true })
+      .order('start_time', { ascending: true }) as any);
     if (error) return [];
     return data || [];
   }

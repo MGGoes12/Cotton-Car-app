@@ -24,12 +24,14 @@ export class OverviewComponent implements OnInit {
   newUserName = '';
   newUserPassword = '';
   newUserIsAdmin = false;
+  confirmDeleteEmail = '';
   days: CalendarDay[] = [];
   currentMonth = new Date();
   reportFrom = this.formatDate(new Date());
   reportTo = this.formatDate(new Date());
   reportResults: Booking[] = [];
   showReport = false;
+  showReportModal = false;
   message = '';
   error = '';
 
@@ -60,13 +62,17 @@ export class OverviewComponent implements OnInit {
   }
 
   private buildCalendar() {
-    const start = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth(), 1);
     const daysInMonth = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth() + 1, 0).getDate();
+    const firstDayOfWeek = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth(), 1).getDay();
     this.days = [];
+    // Blank slots for day-of-week alignment (Sun=0)
+    for (let i = 0; i < firstDayOfWeek; i++) {
+      this.days.push({ value: '', label: '', booked: false, bookings: [] });
+    }
     for (let i = 1; i <= daysInMonth; i++) {
       const date = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth(), i);
       const value = this.formatDate(date);
-      const matched = this.bookings.filter(b => b.booking_date === value);
+      const matched = this.bookings.filter(b => b.booking_date === value && b.status !== 'rejected');
       this.days.push({ value, label: String(i), booked: matched.length > 0, bookings: matched });
     }
   }
@@ -135,6 +141,24 @@ export class OverviewComponent implements OnInit {
     }
   }
 
+  async deleteUser(user: UserProfile) {
+    if (!user.auth_user_id) {
+      this.error = 'Cannot delete: user has no auth account linked.';
+      return;
+    }
+    if (!confirm(`Delete user ${user.email}? This cannot be undone.`)) return;
+    this.error = '';
+    this.message = '';
+    const result = await this.supabase.deleteUser(user.id, user.auth_user_id);
+    if (result.error) {
+      this.error = result.error;
+    } else {
+      this.message = `User ${user.email} deleted.`;
+      this.users = await this.supabase.getUsers();
+      setTimeout(() => this.message = '', 4000);
+    }
+  }
+
   async pullReport() {
     this.error = '';
     this.message = '';
@@ -149,6 +173,7 @@ export class OverviewComponent implements OnInit {
     }
     this.reportResults = data || [];
     this.showReport = true;
+    this.showReportModal = false;
   }
 
   pastBookingDays(day: CalendarDay) {

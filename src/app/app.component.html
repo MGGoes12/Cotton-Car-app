@@ -8,6 +8,7 @@
       <p class="small-text">Mobile-first family booking for the car</p>
     </div>
     <nav>
+      <span *ngIf="user" class="user-email">{{ user.email }}</span>
       <a routerLink="/overview" class="secondary">Overview</a>
       <a routerLink="/booking" class="secondary">Booking</a>
       <button *ngIf="installAvailable" type="button" class="primary" (click)="installApp()">Install App</button>
