@@ -1,1 +1,0 @@
-{"ast":null,"code":"export const resolveFetch = customFetch => {\n  if (customFetch) {\n    return (...args) => customFetch(...args);\n  }\n  return (...args) => fetch(...args);\n};\n//# sourceMappingURL=helper.js.map","map":null,"metadata":{},"sourceType":"module","externalDependencies":[]}
