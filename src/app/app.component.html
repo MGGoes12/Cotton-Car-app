@@ -10,7 +10,8 @@
     <nav>
       <span *ngIf="user" class="user-email">{{ user.email }}</span>
       <a routerLink="/overview" class="secondary">Overview</a>
-      <a routerLink="/booking" class="secondary">Booking</a>
+      <a routerLink="/booking" class="secondary">New Booking</a>
+      <a routerLink="/my-bookings" class="secondary">My Bookings</a>
       <button *ngIf="installAvailable" type="button" class="primary" (click)="installApp()">Install App</button>
       <button *ngIf="user" type="button" class="secondary" (click)="logout()">Logout</button>
     </nav>

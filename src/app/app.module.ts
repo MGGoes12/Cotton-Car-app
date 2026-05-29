@@ -4,12 +4,13 @@ import { FormsModule } from '@angular/forms';
 import { AppComponent } from './app.component';
 import { LoginComponent } from './pages/login/login.component';
 import { BookingComponent } from './pages/booking/booking.component';
+import { MyBookingsComponent } from './pages/my-bookings/my-bookings.component';
 import { OverviewComponent } from './pages/overview/overview.component';
 import { RouterModule } from '@angular/router';
 import { appRoutes } from './app-routing.module';
 
 @NgModule({
-  declarations: [AppComponent, LoginComponent, BookingComponent, OverviewComponent],
+  declarations: [AppComponent, LoginComponent, BookingComponent, MyBookingsComponent, OverviewComponent],
   imports: [BrowserModule, FormsModule, RouterModule.forRoot(appRoutes)],
   providers: [],
   bootstrap: [AppComponent]
