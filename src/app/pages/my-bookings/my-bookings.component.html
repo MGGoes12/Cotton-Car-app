@@ -80,10 +80,6 @@
         class="secondary"
         (click)="setSelectedBooking(booking)"
       >Update trip info</button>
-      <ng-container *ngIf="canAdminReview(booking)">
-        <button type="button" class="primary" (click)="approveBooking(booking, 'approved')">Approve</button>
-        <button type="button" class="danger" (click)="approveBooking(booking, 'rejected')">Reject</button>
-      </ng-container>
     </div>
   </div>
 </ng-template>

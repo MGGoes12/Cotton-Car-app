@@ -1,5 +1,5 @@
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
-import { Router } from '@angular/router';
+import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { bookingAppliesToCalendarDay, formatBookingTimeLabel } from '../../booking-interval.utils';
 import { isLandlordTrip } from '../../booking.constants';
 import { Booking, PasswordResetRequest, SupabaseService, UserProfile } from '../../supabase.service';
@@ -9,6 +9,7 @@ interface CalendarDay {
   label: string;
   booked: boolean;
   bookings: Booking[];
+  isToday: boolean;
 }
 
 interface ReportTrip {
@@ -32,6 +33,9 @@ interface ReportGroup {
   styleUrls: ['./overview.component.scss']
 })
 export class OverviewComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly todayStr = this.formatDate(new Date());
+
   user: UserProfile | null = null;
   bookings: Booking[] = [];
   pendingResets: PasswordResetRequest[] = [];
@@ -41,7 +45,6 @@ export class OverviewComponent implements OnInit {
   newUserName = '';
   newUserPassword = '';
   newUserIsAdmin = false;
-  confirmDeleteEmail = '';
   days: CalendarDay[] = [];
   currentMonth = new Date();
   reportFrom = this.formatDate(new Date());
@@ -57,23 +60,25 @@ export class OverviewComponent implements OnInit {
 
   constructor(
     public supabase: SupabaseService,
-    private router: Router,
     private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
-    this.supabase.authUser$.subscribe(async user => {
-      this.user = user;
-      if (!user) {
-        this.router.navigate(['/login']);
-        return;
-      }
-      await this.loadBookings();
-      if (user.is_admin) {
-        this.pendingResets = await this.supabase.getPendingPasswordResets();
-        this.users = await this.supabase.getUsers();
-      }
-    });
+    this.supabase.authUser$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(async user => {
+        this.user = user;
+        if (!user) return;
+        await this.loadBookings();
+        if (user.is_admin) {
+          this.pendingResets = await this.supabase.getPendingPasswordResets();
+          this.users = await this.supabase.getUsers();
+        }
+      });
+  }
+
+  get pendingCount(): number {
+    return this.bookings.filter(b => b.status === 'pending').length;
   }
 
   private formatDate(date: Date) {
@@ -92,43 +97,26 @@ export class OverviewComponent implements OnInit {
     const daysInMonth = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth() + 1, 0).getDate();
     const firstDayOfWeek = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth(), 1).getDay();
     this.days = [];
-    // Blank slots for day-of-week alignment (Sun=0)
     for (let i = 0; i < firstDayOfWeek; i++) {
-      this.days.push({ value: '', label: '', booked: false, bookings: [] });
+      this.days.push({ value: '', label: '', booked: false, bookings: [], isToday: false });
     }
     for (let i = 1; i <= daysInMonth; i++) {
       const date = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth(), i);
       const value = this.formatDate(date);
       const matched = this.bookings.filter(b => bookingAppliesToCalendarDay(b, value));
-      this.days.push({ value, label: String(i), booked: matched.length > 0, bookings: matched });
+      this.days.push({
+        value,
+        label: String(i),
+        booked: matched.length > 0,
+        bookings: matched,
+        isToday: value === this.todayStr
+      });
     }
   }
 
-  getPendingBookings(): Booking[] {
-    return this.bookings.filter(b => b.status === 'pending');
-  }
-
-  async approveBooking(id: string | null | undefined, status: 'approved' | 'rejected') {
-    if (!id) {
-      this.error = 'Invalid booking ID';
-      return;
-    }
-    this.error = '';
-    this.message = '';
-    const { data, error } = await this.supabase.approveBooking(id, status);
-    if (error) {
-      this.error = error.message;
-      setTimeout(() => (this.error = ''), 4000);
-      return;
-    }
-    if (!data?.length) {
-      this.error = 'Could not update booking. Check admin permissions.';
-      setTimeout(() => (this.error = ''), 4000);
-      return;
-    }
-    this.message = `Booking ${status === 'approved' ? 'approved' : 'rejected'} successfully!`;
-    await this.loadBookings();
-    setTimeout(() => (this.message = ''), 3000);
+  goToToday() {
+    this.currentMonth = new Date();
+    this.buildCalendar();
   }
 
   async approveReset(id: string, email: string) {
@@ -140,13 +128,17 @@ export class OverviewComponent implements OnInit {
     } else {
       this.message = `Password reset approved for ${email}. They can now set a new password on their next sign-in.`;
       this.pendingResets = await this.supabase.getPendingPasswordResets();
-      setTimeout(() => this.message = '', 6000);
+      setTimeout(() => (this.message = ''), 6000);
     }
   }
 
   async addUser() {
     this.error = '';
     this.message = '';
+    if (!this.supabase.hasAdminApi) {
+      this.error = 'Create users in the Supabase dashboard (Auth → Users).';
+      return;
+    }
     if (!this.newUserEmail || !this.newUserPassword) {
       this.error = 'Email and password are required.';
       return;
@@ -171,7 +163,7 @@ export class OverviewComponent implements OnInit {
       this.newUserIsAdmin = false;
       this.showAddUser = false;
       this.users = await this.supabase.getUsers();
-      setTimeout(() => this.message = '', 4000);
+      setTimeout(() => (this.message = ''), 4000);
     }
   }
 
@@ -189,7 +181,7 @@ export class OverviewComponent implements OnInit {
     } else {
       this.message = `User ${user.email} deleted.`;
       this.users = await this.supabase.getUsers();
-      setTimeout(() => this.message = '', 4000);
+      setTimeout(() => (this.message = ''), 4000);
     }
   }
 
@@ -214,6 +206,23 @@ export class OverviewComponent implements OnInit {
     this.showReportModal = false;
     this.showReport = true;
     this.cdr.detectChanges();
+  }
+
+  exportReportCsv() {
+    const rows = ['User,Date,Trip type,Km'];
+    for (const g of this.reportGroups) {
+      for (const t of g.trips) {
+        rows.push(`"${g.email}","${t.date}","${t.reason}",${t.km ?? ''}`);
+      }
+    }
+    rows.push('', `"Total","","",${this.reportTotalKm}`);
+    rows.push(`"Landlord trips","","",${this.reportLandlordKm}`);
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `car-report-${this.reportFrom}-${this.reportTo}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
   }
 
   private buildReportGroups() {
@@ -257,10 +266,6 @@ export class OverviewComponent implements OnInit {
 
   closeReport() {
     this.showReport = false;
-  }
-
-  pastBookingDays(day: CalendarDay) {
-    return day.bookings.map(b => `${b.booking_date}: ${b.reason} (${b.status})`).join('\n');
   }
 
   nextMonth() {

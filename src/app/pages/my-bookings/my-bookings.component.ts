@@ -1,5 +1,5 @@
-import { Component, OnInit } from '@angular/core';
-import { Router } from '@angular/router';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { formatBookingTimeLabel } from '../../booking-interval.utils';
 import { REJECTED_VISIBLE_DAYS } from '../../booking.constants';
 import { Booking, SupabaseService, UserProfile } from '../../supabase.service';
@@ -25,17 +25,18 @@ export class MyBookingsComponent implements OnInit {
 
   formatTime = formatBookingTimeLabel;
 
-  constructor(private supabase: SupabaseService, private router: Router) {}
+  private readonly destroyRef = inject(DestroyRef);
+
+  constructor(private supabase: SupabaseService) {}
 
   ngOnInit(): void {
-    this.supabase.authUser$.subscribe(async user => {
-      this.user = user;
-      if (!user) {
-        this.router.navigate(['/login']);
-        return;
-      }
-      await this.loadBookings();
-    });
+    this.supabase.authUser$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(async user => {
+        this.user = user;
+        if (!user) return;
+        await this.loadBookings();
+      });
   }
 
   async loadBookings() {
@@ -98,9 +99,6 @@ export class MyBookingsComponent implements OnInit {
     return booking.status === 'approved';
   }
 
-  canAdminReview(booking: Booking): boolean {
-    return !!this.user?.is_admin && booking.status !== 'completed';
-  }
 
   setSelectedBooking(booking: Booking) {
     if (!this.canEditTrip(booking)) return;
@@ -132,23 +130,4 @@ export class MyBookingsComponent implements OnInit {
     }
   }
 
-  async approveBooking(booking: Booking, status: 'approved' | 'rejected') {
-    if (!booking.id) {
-      this.error = 'Invalid booking ID.';
-      return;
-    }
-    this.error = '';
-    this.message = '';
-    const { data, error } = await this.supabase.approveBooking(booking.id, status);
-    if (error) {
-      this.error = error.message;
-      return;
-    }
-    if (!data?.length) {
-      this.error = 'Could not update booking. Check admin permissions.';
-      return;
-    }
-    this.message = `Booking ${status}.`;
-    await this.loadBookings();
-  }
 }

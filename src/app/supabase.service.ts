@@ -187,6 +187,34 @@ export class SupabaseService {
     return data || [];
   }
 
+  /** Bookings near a date for overlap checks (±1 day). */
+  async getBookingsNearDate(bookingDate: string): Promise<Booking[]> {
+    const prev = this.addDays(bookingDate, -1);
+    const next = this.addDays(bookingDate, 1);
+    const { data, error } = await (this.supabase
+      .from('bookings')
+      .select('*')
+      .gte('booking_date', prev)
+      .lte('booking_date', next)
+      .neq('status', 'rejected')
+      .order('booking_date', { ascending: true }) as any);
+    if (error) return [];
+    return data || [];
+  }
+
+  private addDays(dateStr: string, days: number): string {
+    const d = new Date(`${dateStr}T12:00:00`);
+    d.setDate(d.getDate() + days);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  get hasAdminApi(): boolean {
+    return !!this.supabaseAdmin;
+  }
+
   async requestPasswordReset(email: string) {
     try {
       const result = await (this.supabase.from('password_reset_requests').insert({ email }) as any);
@@ -328,15 +356,11 @@ export class SupabaseService {
     if (!user?.is_admin) {
       return { data: null, error: { message: 'Only admins can approve or reject bookings.' } };
     }
-    if (this.supabaseAdmin) {
-      return this.supabaseAdmin.from('bookings').update({ status }).eq('id', id).select('*') as any;
-    }
-    return this.updateBooking(id, { status });
+    return this.supabase.from('bookings').update({ status }).eq('id', id).select('*') as any;
   }
 
   async pullReport(fromDate: string, toDate: string) {
-    const client = this.supabaseAdmin ?? this.supabase;
-    return client
+    return this.supabase
       .from('bookings')
       .select('*')
       .gte('booking_date', fromDate)

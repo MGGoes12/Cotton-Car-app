@@ -1,4 +1,4 @@
-<div class="page-card">
+<div class="page-card overview-page">
   <div class="card-head">
     <span class="head-icon" aria-hidden="true">
       <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
@@ -9,6 +9,15 @@
     </div>
   </div>
 
+  <div class="overview-shrek-wrap" aria-hidden="true">
+    <img class="overview-shrek" src="assets/shrek-lounging.png" alt="" />
+  </div>
+
+  <div *ngIf="user?.is_admin && pendingCount > 0" class="admin-banner">
+    <span>{{ pendingCount }} booking{{ pendingCount === 1 ? '' : 's' }} awaiting approval</span>
+    <a routerLink="/all-bookings" class="primary">Review in All Bookings</a>
+  </div>
+
   <div class="cal-toolbar">
     <button type="button" class="icon-btn" (click)="previousMonth()" aria-label="Previous month">
       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
@@ -17,6 +26,7 @@
     <button type="button" class="icon-btn" (click)="nextMonth()" aria-label="Next month">
       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
     </button>
+    <button type="button" class="secondary today-btn" (click)="goToToday()">Today</button>
     <button *ngIf="user?.is_admin" type="button" class="primary" (click)="showReportModal = true">
       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg>
       Pull report
@@ -24,12 +34,6 @@
   </div>
 
   <div class="calendar-stage">
-    <img
-      class="calendar-bg"
-      src="assets/shrek-calendar-bg.png"
-      alt=""
-      aria-hidden="true"
-    />
     <div class="calendar-grid">
       <div class="cal-header">Sun</div>
       <div class="cal-header">Mon</div>
@@ -39,7 +43,9 @@
       <div class="cal-header">Fri</div>
       <div class="cal-header">Sat</div>
       <ng-container *ngFor="let day of days">
-        <div [class]="'calendar-day' + (day.value ? '' : ' empty') + (day.booked ? ' booked' : '')">
+        <div
+          [class]="'calendar-day' + (day.value ? '' : ' empty') + (day.booked ? ' booked' : '') + (day.isToday ? ' today' : '')"
+        >
           <div *ngIf="day.value" class="day-number">{{ day.label }}</div>
           <div *ngFor="let b of day.bookings" class="booking-chip" [class.all-day]="b.all_day" [title]="b.reason + ' (' + b.user_email + ')'">
             <span class="chip-time">{{ formatTime(b) }}</span>
@@ -52,14 +58,15 @@
     <div class="cal-legend">
       <span><i class="dot part"></i> Timed booking</span>
       <span><i class="dot all"></i> All day</span>
+      <span><i class="dot today-dot"></i> Today</span>
     </div>
   </div>
 </div>
 
 <!-- Report date picker modal -->
-<div *ngIf="showReportModal" class="modal-backdrop" (click)="showReportModal = false">
-  <div class="modal-card" (click)="$event.stopPropagation()">
-    <h3>Pull Report</h3>
+<div *ngIf="showReportModal" class="modal-backdrop" (click)="showReportModal = false" role="presentation">
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="report-title" (click)="$event.stopPropagation()">
+    <h3 id="report-title">Pull Report</h3>
     <label>
       From
       <input type="date" [(ngModel)]="reportFrom" name="reportFrom" />
@@ -68,7 +75,7 @@
       To
       <input type="date" [(ngModel)]="reportTo" name="reportTo" />
     </label>
-    <div style="display:flex; gap:0.75rem; margin-top:1rem;">
+    <div class="modal-actions">
       <button type="button" class="primary" (click)="pullReport()">Generate</button>
       <button type="button" class="secondary" (click)="showReportModal = false">Cancel</button>
     </div>
@@ -76,44 +83,32 @@
 </div>
 
 <div *ngIf="user?.is_admin" class="page-card">
-  <h3>Pending approvals</h3>
-  <div *ngIf="getPendingBookings().length === 0" class="empty-state">No pending bookings. You're all caught up.</div>
-  <div class="card-grid">
-    <div *ngFor="let booking of getPendingBookings()" class="booking-row">
-      <div class="row-title"><strong>{{ booking.booking_date }}</strong> <span class="small-text">{{ formatTime(booking) }}</span></div>
-      <div>{{ booking.reason }}</div>
-      <div class="small-text">Requested by {{ booking.user_email }}</div>
-      <div class="actions">
-        <button type="button" class="primary" (click)="approveBooking(booking.id, 'approved')">Approve</button>
-        <button type="button" class="danger" (click)="approveBooking(booking.id, 'rejected')">Reject</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div *ngIf="user?.is_admin" class="page-card">
   <h3>Password reset requests</h3>
+  <div *ngIf="!supabase.hasAdminApi" class="small-text admin-api-hint">
+    User management requires server-side setup. Bookings and reports work via RLS. Run <code>sql/rls-policies.sql</code> in Supabase.
+  </div>
   <div *ngIf="pendingResets.length === 0" class="empty-state">No pending password resets.</div>
   <div class="card-grid">
     <div *ngFor="let req of pendingResets" class="booking-row">
       <div><strong>{{ req.email }}</strong></div>
       <div class="small-text">Requested {{ req.created_at | date:'medium' }}</div>
       <div class="actions">
-        <button type="button" class="primary" (click)="approveReset(req.id!, req.email)">Approve Reset</button>
+        <button type="button" class="primary" (click)="approveReset(req.id!, req.email)" [disabled]="!supabase.hasAdminApi">Approve Reset</button>
       </div>
     </div>
   </div>
 </div>
 
 <div *ngIf="user?.is_admin" class="page-card">
-  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
-    <h3 style="margin:0">Users</h3>
-    <button type="button" class="primary" (click)="showAddUser = !showAddUser">
+  <div class="users-head">
+    <h3>Users</h3>
+    <button type="button" class="primary" (click)="showAddUser = !showAddUser" [disabled]="!supabase.hasAdminApi">
       {{ showAddUser ? 'Cancel' : '+ Add User' }}
     </button>
   </div>
+  <p *ngIf="!supabase.hasAdminApi" class="small-text admin-api-hint">Adding users from the app needs a secure backend. Create users in Supabase Auth for now.</p>
 
-  <div *ngIf="showAddUser" style="margin-top:1rem">
+  <div *ngIf="showAddUser" class="add-user-form">
     <form (ngSubmit)="addUser()">
       <label>
         Email
@@ -127,36 +122,39 @@
         Password
         <input type="password" [(ngModel)]="newUserPassword" name="newUserPassword" required minlength="6" />
       </label>
-      <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
-        <input type="checkbox" [(ngModel)]="newUserIsAdmin" name="newUserIsAdmin" style="width:auto" />
+      <label class="checkbox-label">
+        <input type="checkbox" [(ngModel)]="newUserIsAdmin" name="newUserIsAdmin" />
         Admin user
       </label>
       <button type="submit" class="primary">Create User</button>
     </form>
   </div>
 
-  <div style="margin-top:1rem">
+  <div class="users-list">
     <div *ngIf="users.length === 0" class="small-text">No users found.</div>
-    <div *ngFor="let u of users" class="booking-row" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+    <div *ngFor="let u of users" class="booking-row user-row">
       <div>
         <strong>{{ u.email }}</strong> <span *ngIf="u.full_name">— {{ u.full_name }}</span>
         <div class="small-text">{{ u.is_admin ? 'Admin' : 'User' }}</div>
       </div>
-      <button *ngIf="u.email !== user?.email" type="button" class="danger" (click)="deleteUser(u)">Delete</button>
+      <button *ngIf="u.email !== user?.email" type="button" class="danger" (click)="deleteUser(u)" [disabled]="!supabase.hasAdminApi">Delete</button>
     </div>
   </div>
 </div>
 
-<div *ngIf="showReport" class="modal-backdrop" (click)="closeReport()">
-  <div class="modal-card report-modal" (click)="$event.stopPropagation()">
+<div *ngIf="showReport" class="modal-backdrop" (click)="closeReport()" role="presentation">
+  <div class="modal-card report-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
     <div class="report-head">
       <div>
         <h3>Trip report</h3>
         <p class="small-text">{{ reportFrom }} → {{ reportTo }}</p>
       </div>
-      <button type="button" class="icon-btn" (click)="closeReport()" aria-label="Close">
+      <div class="report-actions">
+        <button type="button" class="secondary" (click)="exportReportCsv()">Export CSV</button>
+        <button type="button" class="icon-btn" (click)="closeReport()" aria-label="Close report">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
       </button>
+      </div>
     </div>
 
     <div class="report-totals">

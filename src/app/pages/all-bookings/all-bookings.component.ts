@@ -1,5 +1,5 @@
-import { Component, OnInit } from '@angular/core';
-import { Router } from '@angular/router';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { formatBookingTimeLabel } from '../../booking-interval.utils';
 import { Booking, SupabaseService, UserProfile } from '../../supabase.service';
 
@@ -17,21 +17,18 @@ export class AllBookingsComponent implements OnInit {
 
   formatTime = formatBookingTimeLabel;
 
-  constructor(private supabase: SupabaseService, private router: Router) {}
+  private readonly destroyRef = inject(DestroyRef);
+
+  constructor(private supabase: SupabaseService) {}
 
   ngOnInit(): void {
-    this.supabase.authUser$.subscribe(async user => {
-      this.user = user;
-      if (!user) {
-        this.router.navigate(['/login']);
-        return;
-      }
-      if (!user.is_admin) {
-        this.router.navigate(['/overview']);
-        return;
-      }
-      await this.loadBookings();
-    });
+    this.supabase.authUser$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(async user => {
+        this.user = user;
+        if (!user) return;
+        await this.loadBookings();
+      });
   }
 
   async loadBookings() {

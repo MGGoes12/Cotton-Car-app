@@ -1,78 +1,35 @@
 # Vercel Environment Variables Setup
 
-This document explains how to configure environment variables on Vercel for the Cotton Car Booking app.
+## Required variables
 
-## Environment Variables
+| Variable | Description |
+|----------|-------------|
+| `SUPABASE_URL` | Your Supabase project URL (`https://your-project.supabase.co`) |
+| `SUPABASE_PUBLISHABLE_KEY` | Supabase **anon public** key |
 
-The following variables need to be set on Vercel:
+## Setting up on Vercel
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `VITE_SUPABASE_URL` | Your Supabase project URL | `https://your-project.supabase.co` |
-| `VITE_SUPABASE_ANON_KEY` | Your Supabase anonymous key | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...` |
+1. Open your project on [vercel.com](https://vercel.com/dashboard).
+2. **Settings** → **Environment Variables**.
+3. Add both variables for **Production** (and Preview if you use it).
+4. Redeploy the latest deployment.
 
-## Setting Up on Vercel Dashboard
+## How it works
 
-1. **Go to your Vercel project settings**
-   - Navigate to https://vercel.com/dashboard
-   - Select your project (or create one)
+1. `npm run build:vercel` runs the Angular production build.
+2. `scripts/inject-env.js` replaces placeholders in `dist/.../index.html` with your env values.
+3. The app reads `window.__env__` at runtime via `src/environments/environment.ts`.
 
-2. **Add Environment Variables**
-   - Click on "Settings" tab
-   - Go to "Environment Variables" section
-   - Add each variable:
-     - Name: `VITE_SUPABASE_URL`
-     - Value: (paste your Supabase project URL)
-     - Production: ✓ (checked)
-   - Add the second variable:
-     - Name: `VITE_SUPABASE_ANON_KEY`
-     - Value: (paste your Supabase anonymous key)
-     - Production: ✓ (checked)
+## Do not add
 
-3. **Redeploy**
-   - Go to "Deployments" tab
-   - Click on the latest deployment
-   - Click "Redeploy" button
+- **`SUPABASE_SERVICE_ROLE`** — must never be injected into the client bundle. Admin booking operations use Row Level Security instead.
 
-## How It Works
+## Supabase credentials
 
-1. During build, `npm run build` runs the Angular build
-2. After build, `scripts/inject-env.js` injects env variables into `dist/index.html`
-3. At runtime, JavaScript reads from `window.__env__` object
-4. The Angular app uses these values via the environment configuration
+1. [Supabase Dashboard](https://app.supabase.com) → your project → **Settings** → **API**
+2. Copy **Project URL** → `SUPABASE_URL`
+3. Copy **anon public** key → `SUPABASE_PUBLISHABLE_KEY`
 
-## Finding Your Supabase Credentials
+## After deploy
 
-1. Go to https://app.supabase.com
-2. Select your project
-3. Click "Settings" → "API"
-4. Copy:
-   - **Project URL** (for `VITE_SUPABASE_URL`)
-   - **anon public** (for `VITE_SUPABASE_ANON_KEY`)
-
-## Local Development
-
-For local testing, you can:
-
-```bash
-# Set env vars in your shell
-export VITE_SUPABASE_URL="https://your-project.supabase.co"
-export VITE_SUPABASE_ANON_KEY="your-anon-key"
-
-# Run the dev server
-npm start
-```
-
-Or create a `.env.local` file (if you configure Angular to support it):
-
-```
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key
-```
-
-## Security Notes
-
-- **Never commit** credentials to Git (they're in `.gitignore`)
-- **Use Vercel Secrets** for sensitive keys in production
-- **Rotate keys** if accidentally exposed
-- The `VITE_SUPABASE_ANON_KEY` is safe to expose in client-side code (it's designed for that)
+Run `sql/rls-policies.sql` in Supabase if you have not already, so approve/reject and reports work for admin users.

@@ -12,7 +12,7 @@
   <form (ngSubmit)="submitBooking()">
     <label>
       Booking date
-      <input type="date" [(ngModel)]="bookingDate" name="bookingDate" required />
+      <input type="date" [(ngModel)]="bookingDate" name="bookingDate" [min]="minBookingDate" (ngModelChange)="refreshOverlapData()" required />
     </label>
 
     <fieldset class="reason-fieldset">

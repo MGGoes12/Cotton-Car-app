@@ -92,6 +92,12 @@
 .cal-legend .dot { width: 0.7rem; height: 0.7rem; border-radius: 3px; }
 .cal-legend .dot.part { background: var(--brand-500); }
 .cal-legend .dot.all { background: var(--brand-800); }
+.cal-legend .dot.today-dot {
+  background: transparent;
+  border: 2px solid var(--brand-500);
+  width: 0.65rem;
+  height: 0.65rem;
+}
 
 button.danger {
   background: #fff;
@@ -106,38 +112,115 @@ button.danger {
   &:hover { background: var(--bad-bg); border-color: #fca5a5; }
 }
 
+.overview-page {
+  position: relative;
+  overflow: hidden;
+}
+
+.overview-shrek-wrap {
+  position: relative;
+  z-index: 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  min-height: 140px;
+  margin: -0.25rem 0 0.5rem;
+  pointer-events: none;
+}
+
+.overview-shrek {
+  width: min(520px, 95%);
+  max-height: 200px;
+  object-fit: contain;
+  object-position: center bottom;
+  opacity: 0.88;
+  filter: drop-shadow(0 8px 24px rgba(15, 23, 42, 0.12));
+}
+
+.admin-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.85rem;
+  border-radius: var(--radius-sm);
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  font-weight: 600;
+  font-size: 0.9rem;
+  position: relative;
+  z-index: 2;
+}
+
+.admin-banner .primary {
+  padding: 0.45rem 0.9rem;
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+
+.admin-api-hint {
+  margin-bottom: 0.75rem;
+  color: var(--ink-muted);
+}
+
+.admin-api-hint code {
+  font-size: 0.82em;
+  background: var(--surface-muted);
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+}
+
+.users-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.users-head h3 { margin: 0; }
+
+.user-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.report-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.today-btn {
+  padding: 0.5rem 0.85rem;
+  font-size: 0.85rem;
+}
+
+.cal-toolbar {
+  position: relative;
+  z-index: 2;
+}
+
 .calendar-stage {
   position: relative;
+  z-index: 2;
   margin-top: 0.5rem;
   padding: 0.65rem;
   border-radius: var(--radius-lg);
-  overflow: hidden;
-  min-height: 440px;
-  background: rgba(248, 250, 252, 0.35);
+  background: rgba(255, 255, 255, 0.45);
   border: 1px solid var(--line-soft);
-  isolation: isolate;
-}
-
-.calendar-bg {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  max-height: 100%;
-  object-fit: contain;
-  object-position: center bottom;
-  opacity: 0.55;
-  /* Black background in PNG — screen hides black, keeps Shrek visible */
-  mix-blend-mode: screen;
-  pointer-events: none;
-  z-index: 0;
-  user-select: none;
-}
-
-.calendar-stage .calendar-grid,
-.calendar-stage .cal-legend {
-  position: relative;
-  z-index: 1;
+  backdrop-filter: blur(4px);
 }
 
 .calendar-grid {
@@ -169,8 +252,12 @@ button.danger {
   transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 
   &.empty { background: transparent; border: none; }
+  &.today {
+    border-color: var(--brand-500);
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25);
+  }
   &.booked {
-    background: rgba(236, 253, 245, 0.5);
+    background: rgba(236, 253, 245, 0.55);
     border-color: var(--brand-200);
     box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.08);
   }

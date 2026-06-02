@@ -1,5 +1,5 @@
-import { Component, OnInit } from '@angular/core';
-import { Router } from '@angular/router';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { bookingsOverlap } from '../../booking-interval.utils';
 import { BOOKING_REASONS } from '../../booking.constants';
 import { Booking, SupabaseService, UserProfile } from '../../supabase.service';
@@ -25,22 +25,28 @@ export class BookingComponent implements OnInit {
   error = '';
   timeRangeError = '';
   readonly timeMinuteStep = 5;
+  readonly minBookingDate = this.formatDate(new Date());
 
-  constructor(private supabase: SupabaseService, private router: Router) {}
+  private readonly destroyRef = inject(DestroyRef);
+
+  constructor(private supabase: SupabaseService) {}
 
   get minEndTime(): string | undefined {
     return this.overnight ? undefined : addMinutes(this.startTime, this.timeMinuteStep, this.timeMinuteStep);
   }
 
   ngOnInit(): void {
-    this.supabase.authUser$.subscribe(async user => {
-      this.user = user;
-      if (!user) {
-        this.router.navigate(['/login']);
-        return;
-      }
-      this.allBookings = await this.supabase.getAllBookings();
-    });
+    this.supabase.authUser$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(async user => {
+        this.user = user;
+        if (!user) return;
+        await this.refreshOverlapData();
+      });
+  }
+
+  async refreshOverlapData() {
+    this.allBookings = await this.supabase.getBookingsNearDate(this.bookingDate);
   }
 
   private formatDate(date: Date) {
@@ -121,6 +127,11 @@ export class BookingComponent implements OnInit {
       this.error = 'Please choose a trip type and booking date.';
       return;
     }
+    if (this.bookingDate < this.minBookingDate) {
+      this.error = 'Booking date cannot be in the past.';
+      return;
+    }
+    await this.refreshOverlapData();
     const end = this.allDay ? '23:59' : this.endTime;
     this.syncTimeRange(true);
     if (!this.allDay && !this.overnight && timeToMinutes(this.endTime) <= timeToMinutes(this.startTime)) {
@@ -168,6 +179,6 @@ export class BookingComponent implements OnInit {
     this.reason = '';
     this.expectedStartKm = 0;
     this.overnight = false;
-    this.allBookings = await this.supabase.getAllBookings();
+    await this.refreshOverlapData();
   }
 }
