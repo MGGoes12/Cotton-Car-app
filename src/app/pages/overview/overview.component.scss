@@ -10,32 +10,45 @@
 .card-head--shrek {
   position: relative;
   overflow: visible;
-  min-height: 5.5rem;
-  padding-right: min(200px, 38vw);
 }
 
 .card-head-text {
   position: relative;
-  z-index: 1;
   min-width: 0;
+  flex: 1;
 }
 
-.card-head-text h2 {
+.title-with-shrek {
+  position: relative;
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 2.2rem;
+  margin-bottom: 0.15rem;
+}
+
+.title-with-shrek h2 {
   position: relative;
   z-index: 1;
+  margin: 0;
+  padding-right: 0.15em;
+  line-height: 1.2;
 }
 
 .shrek-on-title {
   position: absolute;
-  z-index: 4;
-  left: 2.5rem;
-  top: 0.15rem;
-  width: min(320px, calc(100% - 1rem));
-  max-height: 130px;
+  z-index: 5;
+  left: 0;
+  top: 50%;
+  transform: translateY(-52%);
+  width: 115%;
+  max-width: 400px;
+  height: auto;
+  min-width: 280px;
   object-fit: contain;
   object-position: left center;
   pointer-events: none;
-  filter: drop-shadow(0 6px 16px rgba(15, 23, 42, 0.15));
+  filter: drop-shadow(0 4px 12px rgba(15, 23, 42, 0.2));
 }
 
 .head-icon {
@@ -477,19 +490,10 @@ button.danger {
 .trip-km { font-weight: 700; color: var(--brand-700); white-space: nowrap; }
 
 @media (max-width: 640px) {
-  .card-head--shrek {
-    min-height: 4.5rem;
-    padding-right: 0;
-    padding-top: 4.5rem;
-  }
-
   .shrek-on-title {
-    left: 0.5rem;
-    top: auto;
-    bottom: 100%;
-    width: min(260px, 92vw);
-    max-height: 100px;
-    margin-bottom: -0.5rem;
+    width: 130%;
+    min-width: 220px;
+    transform: translateY(-48%);
   }
 
   .calendar-day { min-height: 58px; padding: 3px; border-radius: 8px; }
