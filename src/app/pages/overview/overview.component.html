@@ -23,28 +23,36 @@
     </button>
   </div>
 
-  <div class="calendar-grid">
-    <div class="cal-header">Sun</div>
-    <div class="cal-header">Mon</div>
-    <div class="cal-header">Tue</div>
-    <div class="cal-header">Wed</div>
-    <div class="cal-header">Thu</div>
-    <div class="cal-header">Fri</div>
-    <div class="cal-header">Sat</div>
-    <ng-container *ngFor="let day of days">
-      <div [class]="'calendar-day' + (day.value ? '' : ' empty') + (day.booked ? ' booked' : '')">
-        <div *ngIf="day.value" class="day-number">{{ day.label }}</div>
-        <div *ngFor="let b of day.bookings" class="booking-chip" [class.all-day]="b.all_day" [title]="b.reason + ' (' + b.user_email + ')'">
-          <span class="chip-time">{{ formatTime(b) }}</span>
-          <span class="chip-name">{{ b.user_email | slice:0:(b.user_email.indexOf('@')) }}</span>
+  <div class="calendar-stage">
+    <img
+      class="calendar-bg"
+      src="assets/shrek-calendar-bg.png"
+      alt=""
+      aria-hidden="true"
+    />
+    <div class="calendar-grid">
+      <div class="cal-header">Sun</div>
+      <div class="cal-header">Mon</div>
+      <div class="cal-header">Tue</div>
+      <div class="cal-header">Wed</div>
+      <div class="cal-header">Thu</div>
+      <div class="cal-header">Fri</div>
+      <div class="cal-header">Sat</div>
+      <ng-container *ngFor="let day of days">
+        <div [class]="'calendar-day' + (day.value ? '' : ' empty') + (day.booked ? ' booked' : '')">
+          <div *ngIf="day.value" class="day-number">{{ day.label }}</div>
+          <div *ngFor="let b of day.bookings" class="booking-chip" [class.all-day]="b.all_day" [title]="b.reason + ' (' + b.user_email + ')'">
+            <span class="chip-time">{{ formatTime(b) }}</span>
+            <span class="chip-name">{{ b.user_email | slice:0:(b.user_email.indexOf('@')) }}</span>
+          </div>
         </div>
-      </div>
-    </ng-container>
-  </div>
+      </ng-container>
+    </div>
 
-  <div class="cal-legend">
-    <span><i class="dot part"></i> Timed booking</span>
-    <span><i class="dot all"></i> All day</span>
+    <div class="cal-legend">
+      <span><i class="dot part"></i> Timed booking</span>
+      <span><i class="dot all"></i> All day</span>
+    </div>
   </div>
 </div>
 
