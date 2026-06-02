@@ -1,16 +1,13 @@
 <div class="page-card overview-page">
-  <div class="card-head">
+  <div class="card-head card-head--shrek">
+    <img class="shrek-on-title" src="assets/shrek-lounging.png" alt="" aria-hidden="true" />
     <span class="head-icon" aria-hidden="true">
       <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
     </span>
-    <div>
+    <div class="card-head-text">
       <h2>Booking overview</h2>
       <p class="small-text">See booked days and pending approvals at a glance.</p>
     </div>
-  </div>
-
-  <div class="overview-shrek-wrap" aria-hidden="true">
-    <img class="overview-shrek" src="assets/shrek-lounging.png" alt="" />
   </div>
 
   <div *ngIf="user?.is_admin && pendingCount > 0" class="admin-banner">
@@ -34,6 +31,12 @@
   </div>
 
   <div class="calendar-stage">
+    <img
+      class="calendar-bg"
+      src="assets/shrek-calendar-bg.png"
+      alt=""
+      aria-hidden="true"
+    />
     <div class="calendar-grid">
       <div class="cal-header">Sun</div>
       <div class="cal-header">Mon</div>
