@@ -179,6 +179,12 @@ button.danger {
 .report-head h3 { margin: 0; }
 .report-head p { margin: 0.15rem 0 0; }
 
+.report-totals {
+  display: grid;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
 .report-total {
   display: flex;
   align-items: center;
@@ -187,11 +193,21 @@ button.danger {
   border-radius: var(--radius-sm);
   background: var(--grad);
   color: #fff;
-  margin-bottom: 1rem;
   box-shadow: 0 8px 18px rgba(5, 150, 105, 0.28);
 
   span { font-size: 0.85rem; opacity: 0.92; font-weight: 600; }
   strong { font-size: 1.35rem; }
+
+  &.landlord {
+    background: linear-gradient(135deg, #1d4ed8, #3b82f6);
+    box-shadow: 0 8px 18px rgba(37, 99, 235, 0.28);
+  }
+}
+
+.landlord-hint {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ink-faint);
 }
 
 .report-list {
@@ -261,7 +277,7 @@ button.danger {
 
 .trip-row {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto auto 1fr auto;
   align-items: center;
   gap: 0.6rem;
   padding: 0.6rem 0.75rem;
@@ -269,6 +285,22 @@ button.danger {
   border-radius: var(--radius-sm);
   border: 1px solid var(--line-soft);
   font-size: 0.88rem;
+}
+
+.trip-date {
+  font-size: 0.8rem;
+  color: var(--ink-faint);
+  font-weight: 600;
+}
+
+.trip-summary {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+  color: var(--ink-muted);
+  border-top: 1px dashed var(--line-soft);
+  margin-top: 0.25rem;
 }
 
 .trip-index {

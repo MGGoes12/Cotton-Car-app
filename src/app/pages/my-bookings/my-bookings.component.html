@@ -9,52 +9,84 @@
     </div>
   </div>
 
-  <div *ngIf="bookings.length === 0" class="empty-state">No bookings yet. Tap “New Booking” to reserve the car.</div>
+  <div *ngIf="!hasAnyBookings" class="empty-state">No bookings yet. Tap “New Booking” to reserve the car.</div>
 
-  <div class="card-grid">
-    <div *ngFor="let booking of bookings" class="booking-row">
-      <div class="row-top">
-        <strong>{{ booking.booking_date }}</strong>
-        <span class="badge" [ngClass]="booking.status">{{ booking.status }}</span>
-      </div>
-      <div class="small-text">{{ booking.reason }}</div>
-
-      <div class="meta-grid">
-        <div class="meta">
-          <span class="meta-label">Time</span>
-          <span>{{ booking.all_day ? 'Full day' : booking.start_time + ' – ' + booking.end_time }}</span>
-        </div>
-        <div class="meta">
-          <span class="meta-label">Expected start KM</span>
-          <span>{{ booking.expected_start_km }}</span>
-        </div>
-        <div class="meta" *ngIf="booking.actual_start_km != null">
-          <span class="meta-label">Actual start KM</span>
-          <span>{{ booking.actual_start_km }}</span>
-        </div>
-        <div class="meta" *ngIf="booking.actual_end_km != null">
-          <span class="meta-label">Distance used</span>
-          <span>{{ booking.actual_end_km - booking.actual_start_km }} km</span>
-        </div>
-        <div class="meta" *ngIf="booking.return_time">
-          <span class="meta-label">Returned</span>
-          <span>{{ booking.return_time }}</span>
-        </div>
-      </div>
-
-      <div class="actions">
-        <button type="button" class="secondary" (click)="setSelectedBooking(booking)">Update trip info</button>
-        <ng-container *ngIf="user?.is_admin && booking.status !== 'completed'">
-          <button type="button" class="primary" (click)="approveBooking(booking, 'approved')">Approve</button>
-          <button type="button" class="danger" (click)="approveBooking(booking, 'rejected')">Reject</button>
-        </ng-container>
-      </div>
+  <ng-container *ngIf="activeBookings.length">
+    <h3 class="section-title">Current bookings</h3>
+    <div class="card-grid">
+      <ng-container *ngTemplateOutlet="bookingCard; context: { $implicit: activeBookings }"></ng-container>
     </div>
-  </div>
+  </ng-container>
+
+  <ng-container *ngIf="completedBookings.length">
+    <button type="button" class="section-toggle" (click)="showCompleted = !showCompleted" [attr.aria-expanded]="showCompleted">
+      <span>Completed ({{ completedBookings.length }})</span>
+      <svg class="chev" [class.open]="showCompleted" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+    <div class="card-grid collapsed-section" *ngIf="showCompleted">
+      <ng-container *ngTemplateOutlet="bookingCard; context: { $implicit: completedBookings }"></ng-container>
+    </div>
+  </ng-container>
+
+  <ng-container *ngIf="rejectedBookings.length">
+    <button type="button" class="section-toggle" (click)="showRejected = !showRejected" [attr.aria-expanded]="showRejected">
+      <span>Rejected ({{ rejectedBookings.length }})</span>
+      <svg class="chev" [class.open]="showRejected" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+    <div class="card-grid collapsed-section" *ngIf="showRejected">
+      <ng-container *ngTemplateOutlet="bookingCard; context: { $implicit: rejectedBookings }"></ng-container>
+    </div>
+  </ng-container>
 
   <div *ngIf="error" class="error-message">{{ error }}</div>
   <div *ngIf="message" class="success-message">{{ message }}</div>
 </div>
+
+<ng-template #bookingCard let-list>
+  <div *ngFor="let booking of list" class="booking-row" [class.dimmed]="booking.status === 'completed' || booking.status === 'rejected'">
+    <div class="row-top">
+      <strong>{{ booking.booking_date }}</strong>
+      <span class="badge" [ngClass]="booking.status">{{ booking.status }}</span>
+    </div>
+    <div class="small-text">{{ booking.reason }}</div>
+
+    <div class="meta-grid">
+      <div class="meta">
+        <span class="meta-label">Time</span>
+        <span>{{ booking.all_day ? 'Full day' : booking.start_time + ' – ' + booking.end_time }}</span>
+      </div>
+      <div class="meta">
+        <span class="meta-label">Expected start KM</span>
+        <span>{{ booking.expected_start_km }}</span>
+      </div>
+      <div class="meta" *ngIf="booking.actual_start_km != null">
+        <span class="meta-label">Actual start KM</span>
+        <span>{{ booking.actual_start_km }}</span>
+      </div>
+      <div class="meta" *ngIf="booking.actual_end_km != null">
+        <span class="meta-label">Distance used</span>
+        <span>{{ booking.actual_end_km - booking.actual_start_km }} km</span>
+      </div>
+      <div class="meta" *ngIf="booking.return_time">
+        <span class="meta-label">Returned</span>
+        <span>{{ booking.return_time }}</span>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button
+        *ngIf="canEditTrip(booking)"
+        type="button"
+        class="secondary"
+        (click)="setSelectedBooking(booking)"
+      >Update trip info</button>
+      <ng-container *ngIf="canAdminReview(booking)">
+        <button type="button" class="primary" (click)="approveBooking(booking, 'approved')">Approve</button>
+        <button type="button" class="danger" (click)="approveBooking(booking, 'rejected')">Reject</button>
+      </ng-container>
+    </div>
+  </div>
+</ng-template>
 
 <div *ngIf="selectedBooking" class="modal-backdrop" (click)="selectedBooking = null">
   <div class="modal-card" (click)="$event.stopPropagation()">

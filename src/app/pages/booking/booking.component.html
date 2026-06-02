@@ -5,7 +5,7 @@
     </span>
     <div>
       <h2>Book the car</h2>
-      <p class="small-text">Pick a day, reason, and expected odometer reading. Admin approval is required.</p>
+      <p class="small-text">Pick a day, trip type, and expected odometer reading. Admin approval is required.</p>
     </div>
   </div>
 
@@ -14,13 +14,17 @@
       Booking date
       <input type="date" [(ngModel)]="bookingDate" name="bookingDate" required />
     </label>
-    <label>
-      Reason
-      <textarea [(ngModel)]="reason" name="reason" placeholder="e.g. School run, grocery shopping…" required></textarea>
-    </label>
+
+    <fieldset class="reason-fieldset">
+      <legend>Trip type</legend>
+      <label *ngFor="let option of bookingReasons" class="reason-option">
+        <input type="radio" [(ngModel)]="reason" name="reason" [value]="option" required />
+        <span>{{ option }}</span>
+      </label>
+    </fieldset>
 
     <label class="toggle-row" [class.on]="allDay">
-      <input type="checkbox" [(ngModel)]="allDay" name="allDay" />
+      <input type="checkbox" [(ngModel)]="allDay" name="allDay" (ngModelChange)="onAllDayChange()" />
       <span>
         <strong>Whole day booking</strong>
         <span class="small-text">Reserve the car for the entire day</span>
@@ -29,12 +33,20 @@
 
     <div class="field-row" *ngIf="!allDay">
       <label>
-        Start time
-        <input type="time" [(ngModel)]="startTime" name="startTime" [disabled]="allDay" required />
+        Leaving time
+        <input type="time" [(ngModel)]="startTime" name="startTime" (ngModelChange)="onStartTimeChange()" [disabled]="allDay" required />
       </label>
       <label>
-        End time
-        <input type="time" [(ngModel)]="endTime" name="endTime" [disabled]="allDay" required />
+        Expected return time
+        <input
+          type="time"
+          [(ngModel)]="endTime"
+          name="endTime"
+          (ngModelChange)="onEndTimeChange()"
+          [min]="startTime"
+          [disabled]="allDay"
+          required
+        />
       </label>
     </div>
 
@@ -48,4 +60,3 @@
   <div *ngIf="error" class="error-message">{{ error }}</div>
   <div *ngIf="message" class="success-message">{{ message }}</div>
 </div>
-

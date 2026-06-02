@@ -1,5 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
+import { isLandlordTrip } from '../../booking.constants';
 import { Booking, PasswordResetRequest, SupabaseService, UserProfile } from '../../supabase.service';
 
 interface CalendarDay {
@@ -19,6 +20,7 @@ interface ReportGroup {
   email: string;
   name: string;
   totalKm: number;
+  landlordKm: number;
   trips: ReportTrip[];
   expanded: boolean;
 }
@@ -50,7 +52,11 @@ export class OverviewComponent implements OnInit {
   message = '';
   error = '';
 
-  constructor(public supabase: SupabaseService, private router: Router) {}
+  constructor(
+    public supabase: SupabaseService,
+    private router: Router,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit(): void {
     this.supabase.authUser$.subscribe(async user => {
@@ -104,15 +110,22 @@ export class OverviewComponent implements OnInit {
       this.error = 'Invalid booking ID';
       return;
     }
-    try {
-      await this.supabase.updateBooking(id, { status });
-      this.message = `Booking ${status === 'approved' ? 'approved' : 'rejected'} successfully!`;
-      await this.loadBookings();
-      setTimeout(() => this.message = '', 3000);
-    } catch (err) {
-      this.error = `Failed to update booking: ${err}`;
-      setTimeout(() => this.error = '', 3000);
+    this.error = '';
+    this.message = '';
+    const { data, error } = await this.supabase.approveBooking(id, status);
+    if (error) {
+      this.error = error.message;
+      setTimeout(() => (this.error = ''), 4000);
+      return;
     }
+    if (!data?.length) {
+      this.error = 'Could not update booking. Check admin permissions.';
+      setTimeout(() => (this.error = ''), 4000);
+      return;
+    }
+    this.message = `Booking ${status === 'approved' ? 'approved' : 'rejected'} successfully!`;
+    await this.loadBookings();
+    setTimeout(() => (this.message = ''), 3000);
   }
 
   async approveReset(id: string, email: string) {
@@ -184,20 +197,26 @@ export class OverviewComponent implements OnInit {
       this.error = 'Choose a start and end date for the report.';
       return;
     }
+    if (this.reportFrom > this.reportTo) {
+      this.error = 'The start date must be on or before the end date.';
+      return;
+    }
     const { data, error } = await this.supabase.pullReport(this.reportFrom, this.reportTo);
     if (error) {
       this.error = error.message;
       return;
     }
-    this.reportResults = data || [];
+    this.reportResults = data ?? [];
     this.buildReportGroups();
-    this.showReport = true;
     this.showReportModal = false;
+    this.showReport = true;
+    this.cdr.detectChanges();
   }
 
   private buildReportGroups() {
     const map = new Map<string, ReportGroup>();
     for (const b of this.reportResults) {
+      if (b.status === 'rejected' || b.status === 'pending') continue;
       const email = b.user_email || 'Unknown';
       let group = map.get(email);
       if (!group) {
@@ -205,6 +224,7 @@ export class OverviewComponent implements OnInit {
           email,
           name: email.includes('@') ? email.slice(0, email.indexOf('@')) : email,
           totalKm: 0,
+          landlordKm: 0,
           trips: [],
           expanded: false
         };
@@ -215,6 +235,9 @@ export class OverviewComponent implements OnInit {
         : null;
       if (km != null) {
         group.totalKm += km;
+        if (isLandlordTrip(b.reason)) {
+          group.landlordKm += km;
+        }
       }
       group.trips.push({ reason: b.reason || 'No reason given', date: b.booking_date, km });
     }
@@ -223,6 +246,10 @@ export class OverviewComponent implements OnInit {
 
   get reportTotalKm(): number {
     return this.reportGroups.reduce((sum, g) => sum + g.totalKm, 0);
+  }
+
+  get reportLandlordKm(): number {
+    return this.reportGroups.reduce((sum, g) => sum + g.landlordKm, 0);
   }
 
   closeReport() {

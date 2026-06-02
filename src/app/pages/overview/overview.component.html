@@ -77,7 +77,7 @@
       <div class="small-text">Requested by {{ booking.user_email }}</div>
       <div class="actions">
         <button type="button" class="primary" (click)="approveBooking(booking.id, 'approved')">Approve</button>
-        <button type="button" class="secondary" (click)="approveBooking(booking.id, 'rejected')">Reject</button>
+        <button type="button" class="danger" (click)="approveBooking(booking.id, 'rejected')">Reject</button>
       </div>
     </div>
   </div>
@@ -151,9 +151,15 @@
       </button>
     </div>
 
-    <div class="report-total">
-      <span>Total distance</span>
-      <strong>{{ reportTotalKm }} km</strong>
+    <div class="report-totals">
+      <div class="report-total">
+        <span>Total distance (all trips)</span>
+        <strong>{{ reportTotalKm }} km</strong>
+      </div>
+      <div class="report-total landlord">
+        <span>Landlord trips</span>
+        <strong>{{ reportLandlordKm }} km</strong>
+      </div>
     </div>
 
     <div *ngIf="reportGroups.length === 0" class="empty-state">No bookings found for this period.</div>
@@ -166,7 +172,7 @@
             <span class="user-name">{{ group.name }}</span>
           </span>
           <span class="user-right">
-            <span class="user-total">{{ group.totalKm }} km</span>
+            <span class="user-total">{{ group.totalKm }} km<span *ngIf="group.landlordKm > 0" class="landlord-hint"> · {{ group.landlordKm }} landlord</span></span>
             <svg class="chev" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
           </span>
         </button>
@@ -174,8 +180,13 @@
         <div class="report-trips" *ngIf="group.expanded">
           <div *ngFor="let trip of group.trips; let i = index" class="trip-row">
             <span class="trip-index">Trip {{ i + 1 }}</span>
+            <span class="trip-date">{{ trip.date }}</span>
             <span class="trip-reason">{{ trip.reason }}</span>
             <span class="trip-km">{{ trip.km != null ? trip.km + ' km' : 'pending' }}</span>
+          </div>
+          <div class="trip-summary" *ngIf="group.landlordKm > 0">
+            <span>Landlord trips for {{ group.name }}</span>
+            <strong>{{ group.landlordKm }} km</strong>
           </div>
         </div>
       </div>

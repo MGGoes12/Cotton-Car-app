@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
+import { BOOKING_REASONS } from '../../booking.constants';
 import { Booking, SupabaseService, UserProfile } from '../../supabase.service';
 
 @Component({
@@ -9,7 +10,8 @@ import { Booking, SupabaseService, UserProfile } from '../../supabase.service';
 })
 export class BookingComponent implements OnInit {
   user: UserProfile | null = null;
-  allBookings: Booking[] = [];     // all bookings for overlap checking
+  allBookings: Booking[] = [];
+  bookingReasons = BOOKING_REASONS;
   bookingDate = this.formatDate(new Date());
   startTime = '09:00';
   endTime = '17:00';
@@ -39,6 +41,27 @@ export class BookingComponent implements OnInit {
     return `${year}-${month}-${day}`;
   }
 
+  onStartTimeChange() {
+    this.enforceEndAfterStart();
+  }
+
+  onEndTimeChange() {
+    this.enforceEndAfterStart();
+  }
+
+  onAllDayChange() {
+    if (!this.allDay) {
+      this.enforceEndAfterStart();
+    }
+  }
+
+  private enforceEndAfterStart() {
+    if (this.allDay || this.endTime > this.startTime) return;
+    const [h, m] = this.startTime.split(':').map(Number);
+    const endH = Math.min(h + 1, 23);
+    this.endTime = `${String(endH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  }
+
   async submitBooking() {
     this.error = '';
     this.message = '';
@@ -46,13 +69,13 @@ export class BookingComponent implements OnInit {
       this.error = 'You must be logged in to create a booking.';
       return;
     }
-    if (!this.reason.trim() || !this.bookingDate) {
-      this.error = 'Please complete the booking date and reason.';
+    if (!this.reason || !this.bookingDate) {
+      this.error = 'Please choose a trip type and booking date.';
       return;
     }
     const end = this.allDay ? '23:59' : this.endTime;
     if (!this.allDay && this.endTime <= this.startTime) {
-      this.error = 'End time must be after start time.';
+      this.error = 'Expected return time must be after your leaving time.';
       return;
     }
     const proposed = {
@@ -79,7 +102,7 @@ export class BookingComponent implements OnInit {
       start_time: this.startTime,
       end_time: end,
       all_day: this.allDay,
-      reason: this.reason.trim(),
+      reason: this.reason,
       expected_start_km: this.expectedStartKm,
       status: 'pending'
     };

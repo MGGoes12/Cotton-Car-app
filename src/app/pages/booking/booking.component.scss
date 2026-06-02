@@ -52,3 +52,28 @@ button.primary { margin-top: 0.5rem; }
   font-weight: 600;
   color: var(--ink);
 }
+
+.reason-fieldset {
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 0.85rem 1rem;
+  margin: 0 0 1rem;
+}
+
+.reason-fieldset legend {
+  font-weight: 600;
+  padding: 0 0.25rem;
+}
+
+.reason-option {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 0.5rem;
+  cursor: pointer;
+}
+
+.reason-option input {
+  width: auto;
+  flex: none;
+}

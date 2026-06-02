@@ -285,11 +285,19 @@ export class SupabaseService {
   }
 
   async approveBooking(id: string, status: 'approved' | 'rejected') {
+    const user = this.authUser$.getValue();
+    if (!user?.is_admin) {
+      return { data: null, error: { message: 'Only admins can approve or reject bookings.' } };
+    }
+    if (this.supabaseAdmin) {
+      return this.supabaseAdmin.from('bookings').update({ status }).eq('id', id).select('*') as any;
+    }
     return this.updateBooking(id, { status });
   }
 
   async pullReport(fromDate: string, toDate: string) {
-    return this.supabase
+    const client = this.supabaseAdmin ?? this.supabase;
+    return client
       .from('bookings')
       .select('*')
       .gte('booking_date', fromDate)

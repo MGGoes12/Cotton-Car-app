@@ -64,6 +64,44 @@
 .actions .secondary,
 .actions .danger { padding: 0.55rem 1rem; font-size: 0.88rem; }
 
+.section-title {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+  color: var(--ink-muted);
+}
+
+.section-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin: 1rem 0 0.5rem;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted);
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+
+.section-toggle .chev {
+  transition: transform 0.2s ease;
+}
+
+.section-toggle .chev.open {
+  transform: rotate(180deg);
+}
+
+.collapsed-section {
+  opacity: 0.92;
+}
+
+.booking-row.dimmed {
+  opacity: 0.88;
+}
+
 .empty-state {
   text-align: center;
   color: var(--ink-faint);
