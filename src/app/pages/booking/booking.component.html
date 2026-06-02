@@ -31,24 +31,35 @@
       </span>
     </label>
 
-    <div class="field-row" *ngIf="!allDay">
-      <label>
+    <label class="toggle-row" [class.on]="overnight" *ngIf="!allDay">
+      <input type="checkbox" [(ngModel)]="overnight" name="overnight" (ngModelChange)="onOvernightChange()" />
+      <span>
+        <strong>Overnight trip</strong>
+        <span class="small-text">You return the next morning (return time is on the following day)</span>
+      </span>
+    </label>
+
+    <div class="field-row field-row--times" *ngIf="!allDay">
+      <label class="time-field">
         Leaving time
-        <input type="time" [(ngModel)]="startTime" name="startTime" (ngModelChange)="onStartTimeChange()" [disabled]="allDay" required />
+        <app-time-picker
+          [value]="startTime"
+          [minuteStep]="timeMinuteStep"
+          (valueChange)="onStartTimeChange($event)"
+        ></app-time-picker>
       </label>
-      <label>
-        Expected return time
-        <input
-          type="time"
-          [(ngModel)]="endTime"
-          name="endTime"
-          (ngModelChange)="onEndTimeChange()"
-          [min]="startTime"
-          [disabled]="allDay"
-          required
-        />
+      <label class="time-field">
+        {{ overnight ? 'Expected return time (next day)' : 'Expected return time' }}
+        <app-time-picker
+          [value]="endTime"
+          [minTime]="minEndTime"
+          [minuteStep]="timeMinuteStep"
+          (valueChange)="onEndTimeChange($event)"
+        ></app-time-picker>
       </label>
     </div>
+    <p *ngIf="overnight && !allDay" class="time-range-hint overnight-hint">Leaving {{ startTime }} on {{ bookingDate }} → returning {{ endTime }} the next day.</p>
+    <p *ngIf="timeRangeError" class="time-range-hint" role="alert">{{ timeRangeError }}</p>
 
     <label>
       Expected starting KM

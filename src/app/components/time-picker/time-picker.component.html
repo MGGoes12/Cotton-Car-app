@@ -1,0 +1,21 @@
+<div class="time-picker" [class.disabled]="disabled">
+  <select
+    class="time-picker__hour"
+    [ngModel]="hour"
+    (ngModelChange)="onHourChange($event)"
+    [disabled]="disabled"
+    aria-label="Hour"
+  >
+    <option *ngFor="let h of availableHours" [value]="h">{{ h }}</option>
+  </select>
+  <span class="time-picker__sep" aria-hidden="true">:</span>
+  <select
+    class="time-picker__minute"
+    [ngModel]="minute"
+    (ngModelChange)="onMinuteChange($event)"
+    [disabled]="disabled"
+    aria-label="Minute"
+  >
+    <option *ngFor="let m of availableMinutesForHour(hour)" [value]="m">{{ m }}</option>
+  </select>
+</div>

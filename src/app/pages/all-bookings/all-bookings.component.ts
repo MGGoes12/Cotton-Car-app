@@ -1,0 +1,74 @@
+import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
+import { formatBookingTimeLabel } from '../../booking-interval.utils';
+import { Booking, SupabaseService, UserProfile } from '../../supabase.service';
+
+@Component({
+  selector: 'app-all-bookings',
+  templateUrl: './all-bookings.component.html',
+  styleUrls: ['./all-bookings.component.scss']
+})
+export class AllBookingsComponent implements OnInit {
+  user: UserProfile | null = null;
+  pendingBookings: Booking[] = [];
+  approvedBookings: Booking[] = [];
+  error = '';
+  message = '';
+
+  formatTime = formatBookingTimeLabel;
+
+  constructor(private supabase: SupabaseService, private router: Router) {}
+
+  ngOnInit(): void {
+    this.supabase.authUser$.subscribe(async user => {
+      this.user = user;
+      if (!user) {
+        this.router.navigate(['/login']);
+        return;
+      }
+      if (!user.is_admin) {
+        this.router.navigate(['/overview']);
+        return;
+      }
+      await this.loadBookings();
+    });
+  }
+
+  async loadBookings() {
+    const all = await this.supabase.getAllBookingsForAdmin();
+    const upcoming = all.filter(b => b.status === 'pending' || b.status === 'approved');
+    const byDateAsc = (a: Booking, b: Booking) =>
+      a.booking_date.localeCompare(b.booking_date) || a.start_time.localeCompare(b.start_time);
+
+    this.pendingBookings = upcoming.filter(b => b.status === 'pending').sort(byDateAsc);
+    this.approvedBookings = upcoming.filter(b => b.status === 'approved').sort(byDateAsc);
+  }
+
+  get hasAnyBookings(): boolean {
+    return this.pendingBookings.length > 0 || this.approvedBookings.length > 0;
+  }
+
+  userLabel(email: string): string {
+    return email.includes('@') ? email.slice(0, email.indexOf('@')) : email;
+  }
+
+  async approveBooking(booking: Booking, status: 'approved' | 'rejected') {
+    if (!booking.id) {
+      this.error = 'Invalid booking ID.';
+      return;
+    }
+    this.error = '';
+    this.message = '';
+    const { data, error } = await this.supabase.approveBooking(booking.id, status);
+    if (error) {
+      this.error = error.message;
+      return;
+    }
+    if (!data?.length) {
+      this.error = 'Could not update booking. Check admin permissions.';
+      return;
+    }
+    this.message = `Booking ${status} for ${booking.user_email}.`;
+    await this.loadBookings();
+  }
+}

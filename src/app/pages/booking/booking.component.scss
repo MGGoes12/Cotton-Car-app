@@ -26,6 +26,20 @@ button.primary { margin-top: 0.5rem; }
   gap: 1rem;
 }
 
+.field-row--times {
+  align-items: end;
+}
+
+@media (max-width: 480px) {
+  .field-row--times {
+    grid-template-columns: 1fr;
+  }
+}
+
+.time-field {
+  min-width: 0;
+}
+
 .toggle-row {
   display: flex;
   align-items: center;
@@ -76,4 +90,16 @@ button.primary { margin-top: 0.5rem; }
 .reason-option input {
   width: auto;
   flex: none;
+}
+
+.time-range-hint {
+  margin: -0.35rem 0 0.85rem;
+  font-size: 0.85rem;
+  color: var(--brand-700);
+  font-weight: 600;
+}
+
+.overnight-hint {
+  color: var(--ink-muted);
+  font-weight: 500;
 }

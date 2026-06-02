@@ -35,7 +35,7 @@
       <div [class]="'calendar-day' + (day.value ? '' : ' empty') + (day.booked ? ' booked' : '')">
         <div *ngIf="day.value" class="day-number">{{ day.label }}</div>
         <div *ngFor="let b of day.bookings" class="booking-chip" [class.all-day]="b.all_day" [title]="b.reason + ' (' + b.user_email + ')'">
-          <span class="chip-time">{{ b.all_day ? 'All day' : (b.start_time | slice:0:5) + '–' + (b.end_time | slice:0:5) }}</span>
+          <span class="chip-time">{{ formatTime(b) }}</span>
           <span class="chip-name">{{ b.user_email | slice:0:(b.user_email.indexOf('@')) }}</span>
         </div>
       </div>
@@ -72,7 +72,7 @@
   <div *ngIf="getPendingBookings().length === 0" class="empty-state">No pending bookings. You're all caught up.</div>
   <div class="card-grid">
     <div *ngFor="let booking of getPendingBookings()" class="booking-row">
-      <div class="row-title"><strong>{{ booking.booking_date }}</strong> <span class="small-text">{{ booking.all_day ? 'All day' : booking.start_time + ' – ' + booking.end_time }}</span></div>
+      <div class="row-title"><strong>{{ booking.booking_date }}</strong> <span class="small-text">{{ formatTime(booking) }}</span></div>
       <div>{{ booking.reason }}</div>
       <div class="small-text">Requested by {{ booking.user_email }}</div>
       <div class="actions">

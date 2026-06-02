@@ -1,7 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
+import { bookingsOverlap } from '../../booking-interval.utils';
 import { BOOKING_REASONS } from '../../booking.constants';
 import { Booking, SupabaseService, UserProfile } from '../../supabase.service';
+import { addMinutes, timeToMinutes } from '../../time.utils';
 
 @Component({
   selector: 'app-booking',
@@ -16,12 +18,19 @@ export class BookingComponent implements OnInit {
   startTime = '09:00';
   endTime = '17:00';
   allDay = false;
+  overnight = false;
   reason = '';
   expectedStartKm = 0;
   message = '';
   error = '';
+  timeRangeError = '';
+  readonly timeMinuteStep = 5;
 
   constructor(private supabase: SupabaseService, private router: Router) {}
+
+  get minEndTime(): string | undefined {
+    return this.overnight ? undefined : addMinutes(this.startTime, this.timeMinuteStep, this.timeMinuteStep);
+  }
 
   ngOnInit(): void {
     this.supabase.authUser$.subscribe(async user => {
@@ -41,25 +50,64 @@ export class BookingComponent implements OnInit {
     return `${year}-${month}-${day}`;
   }
 
-  onStartTimeChange() {
-    this.enforceEndAfterStart();
+  onStartTimeChange(value: string) {
+    this.startTime = value;
+    this.syncTimeRange(false);
   }
 
-  onEndTimeChange() {
-    this.enforceEndAfterStart();
-  }
-
-  onAllDayChange() {
-    if (!this.allDay) {
-      this.enforceEndAfterStart();
+  onEndTimeChange(value: string) {
+    if (this.allDay) {
+      this.endTime = value;
+      return;
+    }
+    if (this.overnight) {
+      this.endTime = value;
+      this.timeRangeError = '';
+      return;
+    }
+    if (timeToMinutes(value) <= timeToMinutes(this.startTime)) {
+      this.endTime = this.minEndTime!;
+      this.timeRangeError = 'Return time must be after leaving time — adjusted to the earliest allowed time.';
+    } else {
+      this.endTime = value;
+      this.timeRangeError = '';
     }
   }
 
-  private enforceEndAfterStart() {
-    if (this.allDay || this.endTime > this.startTime) return;
-    const [h, m] = this.startTime.split(':').map(Number);
-    const endH = Math.min(h + 1, 23);
-    this.endTime = `${String(endH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  onAllDayChange() {
+    if (this.allDay) {
+      this.overnight = false;
+      this.timeRangeError = '';
+      return;
+    }
+    this.syncTimeRange(false);
+  }
+
+  onOvernightChange() {
+    if (this.overnight) {
+      this.allDay = false;
+      if (timeToMinutes(this.endTime) > timeToMinutes(this.startTime)) {
+        this.endTime = '07:00';
+      }
+      this.timeRangeError = '';
+      return;
+    }
+    this.syncTimeRange(false);
+  }
+
+  private syncTimeRange(showHint: boolean) {
+    if (this.allDay || this.overnight) {
+      this.timeRangeError = '';
+      return;
+    }
+    if (timeToMinutes(this.endTime) <= timeToMinutes(this.startTime)) {
+      this.endTime = this.minEndTime!;
+      if (showHint) {
+        this.timeRangeError = 'Return time must be after leaving time — adjusted to the earliest allowed time.';
+      }
+    } else {
+      this.timeRangeError = '';
+    }
   }
 
   async submitBooking() {
@@ -74,7 +122,8 @@ export class BookingComponent implements OnInit {
       return;
     }
     const end = this.allDay ? '23:59' : this.endTime;
-    if (!this.allDay && this.endTime <= this.startTime) {
+    this.syncTimeRange(true);
+    if (!this.allDay && !this.overnight && timeToMinutes(this.endTime) <= timeToMinutes(this.startTime)) {
       this.error = 'Expected return time must be after your leaving time.';
       return;
     }
@@ -82,10 +131,12 @@ export class BookingComponent implements OnInit {
       booking_date: this.bookingDate,
       start_time: this.startTime,
       end_time: end,
-      all_day: this.allDay
-    } as Booking;
+      all_day: this.allDay,
+      overnight: this.overnight,
+      status: 'pending' as const
+    };
     const conflicting = this.allBookings.find(b =>
-      b.status !== 'rejected' && this.hasOverlap(b, proposed)
+      b.status !== 'rejected' && bookingsOverlap(b, proposed)
     );
     if (conflicting) {
       const isOwnBooking = conflicting.user_profile_id === this.user!.id;
@@ -102,6 +153,7 @@ export class BookingComponent implements OnInit {
       start_time: this.startTime,
       end_time: end,
       all_day: this.allDay,
+      overnight: this.overnight,
       reason: this.reason,
       expected_start_km: this.expectedStartKm,
       status: 'pending'
@@ -115,13 +167,7 @@ export class BookingComponent implements OnInit {
     this.message = 'Booking request created and waiting for admin approval.';
     this.reason = '';
     this.expectedStartKm = 0;
+    this.overnight = false;
     this.allBookings = await this.supabase.getAllBookings();
-  }
-
-  hasOverlap(existing: Booking, current: Booking) {
-    if (existing.booking_date !== current.booking_date) return false;
-    if (existing.status === 'rejected') return false;
-    if (existing.all_day || current.all_day) return true;
-    return current.start_time < existing.end_time && existing.start_time < current.end_time;
   }
 }

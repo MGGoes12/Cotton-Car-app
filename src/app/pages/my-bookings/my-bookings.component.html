@@ -53,7 +53,7 @@
     <div class="meta-grid">
       <div class="meta">
         <span class="meta-label">Time</span>
-        <span>{{ booking.all_day ? 'Full day' : booking.start_time + ' – ' + booking.end_time }}</span>
+          <span>{{ formatTime(booking) }}</span>
       </div>
       <div class="meta">
         <span class="meta-label">Expected start KM</span>
@@ -102,7 +102,11 @@
       </label>
       <label>
         Return time
-        <input type="time" [(ngModel)]="returnTime" name="returnTime" />
+        <app-time-picker
+          [value]="returnTime || '17:00'"
+          [minuteStep]="5"
+          (valueChange)="returnTime = $event"
+        ></app-time-picker>
       </label>
       <button type="submit" class="primary">Save trip data</button>
       <button type="button" class="secondary" (click)="selectedBooking = null">Cancel</button>

@@ -27,6 +27,7 @@ export interface Booking {
   start_time: string;
   end_time: string;
   all_day: boolean;
+  overnight?: boolean;
   reason: string;
   expected_start_km: number;
   actual_start_km?: number;
@@ -259,6 +260,44 @@ export class SupabaseService {
     this.authUser$.next(null);
   }
 
+  /** Current user's bookings only (My Trips page). */
+  async getMyBookings(): Promise<Booking[]> {
+    const user = this.authUser$.getValue();
+    if (!user) {
+      return [];
+    }
+    const { data, error } = await (this.supabase
+      .from('bookings')
+      .select('*')
+      .eq('user_profile_id', user.id)
+      .order('booking_date', { ascending: true })
+      .order('start_time', { ascending: true }) as any);
+    if (error) {
+      console.error('Error loading my bookings', error.message);
+      return [];
+    }
+    return data || [];
+  }
+
+  /** All users' bookings — admin only (All Bookings page). */
+  async getAllBookingsForAdmin(): Promise<Booking[]> {
+    const user = this.authUser$.getValue();
+    if (!user?.is_admin) {
+      return [];
+    }
+    const { data, error } = await (this.supabase
+      .from('bookings')
+      .select('*')
+      .order('booking_date', { ascending: true })
+      .order('start_time', { ascending: true }) as any);
+    if (error) {
+      console.error('Error loading all bookings', error.message);
+      return [];
+    }
+    return data || [];
+  }
+
+  /** Overview calendar: all bookings for admins, own bookings for everyone else. */
   async getBookings() {
     const user = this.authUser$.getValue();
     if (!user) {

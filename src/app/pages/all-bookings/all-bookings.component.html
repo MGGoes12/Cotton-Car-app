@@ -1,0 +1,64 @@
+<div class="page-card">
+  <div class="card-head">
+    <span class="head-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+    </span>
+    <div>
+      <h2>All bookings</h2>
+      <p class="small-text">Upcoming trips across all users — pending approval and approved.</p>
+    </div>
+  </div>
+
+  <div *ngIf="!hasAnyBookings" class="empty-state">No upcoming bookings. Pending and approved trips will appear here.</div>
+
+  <ng-container *ngIf="pendingBookings.length">
+    <h3 class="section-title">Awaiting approval</h3>
+    <div class="card-grid">
+      <ng-container *ngTemplateOutlet="bookingCard; context: { $implicit: pendingBookings, showActions: true }"></ng-container>
+    </div>
+  </ng-container>
+
+  <ng-container *ngIf="approvedBookings.length">
+    <h3 class="section-title">Approved — upcoming</h3>
+    <div class="card-grid">
+      <ng-container *ngTemplateOutlet="bookingCard; context: { $implicit: approvedBookings, showActions: false }"></ng-container>
+    </div>
+  </ng-container>
+
+  <div *ngIf="error" class="error-message">{{ error }}</div>
+  <div *ngIf="message" class="success-message">{{ message }}</div>
+</div>
+
+<ng-template #bookingCard let-list let-showActions="showActions">
+  <div *ngFor="let booking of list" class="booking-row">
+    <div class="row-top">
+      <strong>{{ booking.booking_date }}</strong>
+      <span class="badge" [ngClass]="booking.status">{{ booking.status }}</span>
+    </div>
+    <div class="user-line">
+      <span class="avatar-sm">{{ userLabel(booking.user_email).charAt(0).toUpperCase() }}</span>
+      <span>{{ booking.user_email }}</span>
+    </div>
+    <div class="small-text">{{ booking.reason }}<span *ngIf="booking.overnight" class="tag">Overnight</span></div>
+
+    <div class="meta-grid">
+      <div class="meta">
+        <span class="meta-label">Time</span>
+        <span>{{ formatTime(booking) }}</span>
+      </div>
+      <div class="meta">
+        <span class="meta-label">Expected start KM</span>
+        <span>{{ booking.expected_start_km }}</span>
+      </div>
+      <div class="meta" *ngIf="booking.actual_start_km != null">
+        <span class="meta-label">Actual start KM</span>
+        <span>{{ booking.actual_start_km }}</span>
+      </div>
+    </div>
+
+    <div class="actions" *ngIf="showActions">
+      <button type="button" class="primary" (click)="approveBooking(booking, 'approved')">Approve</button>
+      <button type="button" class="danger" (click)="approveBooking(booking, 'rejected')">Reject</button>
+    </div>
+  </div>
+</ng-template>

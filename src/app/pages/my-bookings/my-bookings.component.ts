@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
+import { formatBookingTimeLabel } from '../../booking-interval.utils';
 import { REJECTED_VISIBLE_DAYS } from '../../booking.constants';
 import { Booking, SupabaseService, UserProfile } from '../../supabase.service';
 
@@ -22,6 +23,8 @@ export class MyBookingsComponent implements OnInit {
   actualEndKm?: number;
   returnTime = '';
 
+  formatTime = formatBookingTimeLabel;
+
   constructor(private supabase: SupabaseService, private router: Router) {}
 
   ngOnInit(): void {
@@ -36,7 +39,7 @@ export class MyBookingsComponent implements OnInit {
   }
 
   async loadBookings() {
-    const all = await this.supabase.getBookings();
+    const all = await this.supabase.getMyBookings();
     const visible = all.filter(b => this.isRejectedVisible(b));
     this.partitionBookings(visible);
   }

@@ -1,5 +1,6 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
+import { bookingAppliesToCalendarDay, formatBookingTimeLabel } from '../../booking-interval.utils';
 import { isLandlordTrip } from '../../booking.constants';
 import { Booking, PasswordResetRequest, SupabaseService, UserProfile } from '../../supabase.service';
 
@@ -52,6 +53,8 @@ export class OverviewComponent implements OnInit {
   message = '';
   error = '';
 
+  formatTime = formatBookingTimeLabel;
+
   constructor(
     public supabase: SupabaseService,
     private router: Router,
@@ -96,7 +99,7 @@ export class OverviewComponent implements OnInit {
     for (let i = 1; i <= daysInMonth; i++) {
       const date = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth(), i);
       const value = this.formatDate(date);
-      const matched = this.bookings.filter(b => b.booking_date === value && b.status !== 'rejected');
+      const matched = this.bookings.filter(b => bookingAppliesToCalendarDay(b, value));
       this.days.push({ value, label: String(i), booked: matched.length > 0, bookings: matched });
     }
   }
