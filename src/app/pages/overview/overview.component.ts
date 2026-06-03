@@ -1,6 +1,7 @@
 import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { bookingAppliesToCalendarDay, formatBookingTimeLabel } from '../../booking-interval.utils';
+import { shrekForMonth } from '../../shrek-months';
 import { isLandlordTrip } from '../../booking.constants';
 import { Booking, PasswordResetRequest, SupabaseService, UserProfile } from '../../supabase.service';
 
@@ -79,6 +80,10 @@ export class OverviewComponent implements OnInit {
 
   get pendingCount(): number {
     return this.bookings.filter(b => b.status === 'pending').length;
+  }
+
+  get calendarShrekSrc(): string {
+    return shrekForMonth(this.currentMonth.getMonth());
   }
 
   private formatDate(date: Date) {
