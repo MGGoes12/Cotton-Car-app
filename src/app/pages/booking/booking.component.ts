@@ -147,7 +147,7 @@ export class BookingComponent implements OnInit {
       status: 'pending' as const
     };
     const conflicting = this.allBookings.find(b =>
-      b.status !== 'rejected' && bookingsOverlap(b, proposed)
+      b.status !== 'rejected' && b.status !== 'completed' && bookingsOverlap(b, proposed)
     );
     if (conflicting) {
       const isOwnBooking = conflicting.user_profile_id === this.user!.id;

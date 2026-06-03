@@ -14,10 +14,9 @@ export function formatBookingTimeLabel(booking: Pick<Booking, 'all_day' | 'start
 }
 
 /** Absolute minute index for overlap checks (day index * 1440 + time). */
-export function bookingIntervalMinutes(booking: Pick<Booking, 'booking_date' | 'start_time' | 'end_time' | 'all_day' | 'overnight'>): {
-  start: number;
-  end: number;
-} {
+export function bookingIntervalMinutes(
+  booking: Pick<Booking, 'booking_date' | 'start_time' | 'end_time' | 'all_day' | 'overnight'>
+): { start: number; end: number } {
   const dayIndex = dateStringToDayIndex(booking.booking_date);
   const dayStart = dayIndex * 1440;
 
@@ -38,6 +37,9 @@ export function bookingsOverlap(
   b: Pick<Booking, 'booking_date' | 'start_time' | 'end_time' | 'all_day' | 'overnight' | 'status'>
 ): boolean {
   if (a.status === 'rejected' || b.status === 'rejected') {
+    return false;
+  }
+  if (a.status === 'completed' || b.status === 'completed') {
     return false;
   }
   const rangeA = bookingIntervalMinutes(a);

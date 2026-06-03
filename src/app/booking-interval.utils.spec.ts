@@ -48,6 +48,28 @@ describe('bookingsOverlap', () => {
     const b = booking({ start_time: '10:00', end_time: '11:00' });
     expect(bookingsOverlap(a, b)).toBe(false);
   });
+
+  it('ignores completed all-day when booking afternoon slot', () => {
+    const done = booking({
+      all_day: true,
+      end_time: '23:59',
+      status: 'completed',
+      return_time: '17:00'
+    });
+    const afternoon = booking({
+      booking_date: '2026-06-01',
+      start_time: '18:00',
+      end_time: '19:00',
+      status: 'pending'
+    });
+    expect(bookingsOverlap(done, afternoon)).toBe(false);
+  });
+
+  it('blocks afternoon when all-day still approved', () => {
+    const active = booking({ all_day: true, end_time: '23:59', status: 'approved' });
+    const afternoon = booking({ start_time: '18:00', end_time: '19:00' });
+    expect(bookingsOverlap(active, afternoon)).toBe(true);
+  });
 });
 
 describe('formatBookingTimeLabel', () => {
