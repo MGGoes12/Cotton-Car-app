@@ -56,6 +56,11 @@ create policy "Admins read all bookings"
   on bookings for select
   using (public.is_admin());
 
+drop policy if exists "Authenticated read all bookings for calendar" on bookings;
+create policy "Authenticated read all bookings for calendar"
+  on bookings for select
+  using (auth.uid() is not null);
+
 drop policy if exists "Users insert own bookings" on bookings;
 create policy "Users insert own bookings"
   on bookings for insert

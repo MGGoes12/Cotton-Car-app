@@ -9,7 +9,7 @@ A mobile-first Angular booking app for family car access, built for Supabase aut
 - Booking creation with trip types, times, whole-day and overnight options
 - Booking approval workflow for admin users
 - Odometer capture before and after the trip
-- Calendar overview with today highlight
+- Shared calendar overview (all users see who has the car booked)
 - Trip report by date range with landlord km totals and CSV export
 - PWA install support
 
@@ -46,5 +46,5 @@ See `sql/sample-data.sql` and create matching users in Supabase Auth.
 
 ## Security notes
 
-- Run `sql/rls-policies.sql` so users can only read/write their own data; admins can manage all bookings.
+- Run `sql/rls-policies.sql` so users manage their own bookings; any signed-in user can **read** all bookings for the calendar. Admins approve/reject and pull reports.
 - Approve/reject and reports use the anon key with RLS — no service role in `index.html`.

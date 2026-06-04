@@ -325,17 +325,17 @@ export class SupabaseService {
     return data || [];
   }
 
-  /** Overview calendar: all bookings for admins, own bookings for everyone else. */
-  async getBookings() {
+  /** Shared calendar: all users' bookings (pending/approved/completed; not rejected). */
+  async getBookings(): Promise<Booking[]> {
     const user = this.authUser$.getValue();
     if (!user) {
-      return [] as Booking[];
+      return [];
     }
-    const query = this.supabase.from('bookings').select('*').order('booking_date', { ascending: true }).order('start_time', { ascending: true }) as any;
-    if (!user.is_admin) {
-      query.eq('user_profile_id', user.id);
-    }
-    const { data, error } = await query;
+    const { data, error } = await (this.supabase
+      .from('bookings')
+      .select('*')
+      .order('booking_date', { ascending: true })
+      .order('start_time', { ascending: true }) as any);
     if (error) {
       console.error('Error loading bookings', error.message);
       return [];
@@ -360,6 +360,10 @@ export class SupabaseService {
   }
 
   async pullReport(fromDate: string, toDate: string) {
+    const user = this.authUser$.getValue();
+    if (!user?.is_admin) {
+      return { data: null, error: { message: 'Only admins can pull reports.' } };
+    }
     return this.supabase
       .from('bookings')
       .select('*')
