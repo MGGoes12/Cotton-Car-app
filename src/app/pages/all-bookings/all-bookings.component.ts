@@ -65,7 +65,33 @@ export class AllBookingsComponent implements OnInit {
       this.error = 'Could not update booking. Check admin permissions.';
       return;
     }
-    this.message = `Booking ${status} for ${booking.user_email}.`;
+    this.message = status === 'rejected'
+      ? `Booking rejected for ${booking.user_email}.`
+      : `Booking approved for ${booking.user_email}.`;
+    await this.loadBookings();
+  }
+
+  async cancelBooking(booking: Booking) {
+    if (!booking.id) {
+      this.error = 'Invalid booking ID.';
+      return;
+    }
+    const when = `${booking.booking_date} · ${this.formatTime(booking)}`;
+    if (!confirm(`Cancel this approved booking for ${booking.user_email} (${when})? The slot will be free again.`)) {
+      return;
+    }
+    this.error = '';
+    this.message = '';
+    const { data, error } = await this.supabase.cancelBooking(booking.id);
+    if (error) {
+      this.error = error.message;
+      return;
+    }
+    if (!data?.length) {
+      this.error = 'Could not cancel booking. Check admin permissions.';
+      return;
+    }
+    this.message = `Booking cancelled for ${booking.user_email}.`;
     await this.loadBookings();
   }
 }

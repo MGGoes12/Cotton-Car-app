@@ -359,6 +359,20 @@ export class SupabaseService {
     return this.supabase.from('bookings').update({ status }).eq('id', id).select('*') as any;
   }
 
+  /** Admin cancels an approved booking (frees the slot; shows as rejected for the user). */
+  async cancelBooking(id: string) {
+    const user = this.authUser$.getValue();
+    if (!user?.is_admin) {
+      return { data: null, error: { message: 'Only admins can cancel bookings.' } };
+    }
+    return this.supabase
+      .from('bookings')
+      .update({ status: 'rejected' })
+      .eq('id', id)
+      .eq('status', 'approved')
+      .select('*') as any;
+  }
+
   async pullReport(fromDate: string, toDate: string) {
     const user = this.authUser$.getValue();
     if (!user?.is_admin) {
