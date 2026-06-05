@@ -9,6 +9,7 @@ function booking(partial: Partial<Booking>): Booking {
     start_time: '09:00',
     end_time: '17:00',
     all_day: false,
+    full_evening: false,
     reason: 'Private use',
     expected_start_km: 0,
     status: 'approved',
@@ -49,34 +50,55 @@ describe('bookingsOverlap', () => {
     expect(bookingsOverlap(a, b)).toBe(false);
   });
 
-  it('ignores completed all-day when booking afternoon slot', () => {
+  it('ignores completed full day when booking evening slot', () => {
     const done = booking({
       all_day: true,
-      end_time: '23:59',
-      status: 'completed',
-      return_time: '17:00'
+      start_time: '06:00',
+      end_time: '17:00',
+      status: 'completed'
     });
-    const afternoon = booking({
+    const evening = booking({
       booking_date: '2026-06-01',
-      start_time: '18:00',
-      end_time: '19:00',
+      full_evening: true,
+      start_time: '17:00',
+      end_time: '22:00',
       status: 'pending'
     });
-    expect(bookingsOverlap(done, afternoon)).toBe(false);
+    expect(bookingsOverlap(done, evening)).toBe(false);
   });
 
-  it('blocks afternoon when all-day still approved', () => {
-    const active = booking({ all_day: true, end_time: '23:59', status: 'approved' });
-    const afternoon = booking({ start_time: '18:00', end_time: '19:00' });
-    expect(bookingsOverlap(active, afternoon)).toBe(true);
+  it('blocks midday when full day still approved', () => {
+    const active = booking({ all_day: true, start_time: '06:00', end_time: '17:00', status: 'approved' });
+    const midday = booking({ start_time: '10:00', end_time: '11:00' });
+    expect(bookingsOverlap(active, midday)).toBe(true);
+  });
+
+  it('allows evening when full day still approved', () => {
+    const active = booking({ all_day: true, start_time: '06:00', end_time: '17:00', status: 'approved' });
+    const evening = booking({ full_evening: true, start_time: '17:00', end_time: '22:00' });
+    expect(bookingsOverlap(active, evening)).toBe(false);
+  });
+
+  it('blocks overlap within full evening window', () => {
+    const evening = booking({ full_evening: true, start_time: '17:00', end_time: '22:00', status: 'approved' });
+    const slot = booking({ start_time: '18:00', end_time: '19:00' });
+    expect(bookingsOverlap(evening, slot)).toBe(true);
   });
 });
 
 describe('formatBookingTimeLabel', () => {
+  it('formats full day and full evening', () => {
+    expect(formatBookingTimeLabel({ all_day: true, full_evening: false, start_time: '06:00', end_time: '17:00', overnight: false }))
+      .toBe('Full day (6am–5pm)');
+    expect(formatBookingTimeLabel({ all_day: false, full_evening: true, start_time: '17:00', end_time: '22:00', overnight: false }))
+      .toBe('Full evening (5pm–10pm)');
+  });
+
   it('formats overnight trips', () => {
     expect(
       formatBookingTimeLabel({
         all_day: false,
+        full_evening: false,
         start_time: '22:00:00',
         end_time: '07:00:00',
         overnight: true

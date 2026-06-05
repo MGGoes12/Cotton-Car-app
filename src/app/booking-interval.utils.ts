@@ -1,9 +1,25 @@
 import { Booking } from './supabase.service';
+import {
+  FULL_DAY_END,
+  FULL_DAY_START,
+  FULL_EVENING_END,
+  FULL_EVENING_START
+} from './booking.constants';
 import { addDaysToDateString, timeToMinutes } from './time.utils';
 
-export function formatBookingTimeLabel(booking: Pick<Booking, 'all_day' | 'start_time' | 'end_time' | 'overnight'>): string {
+type BookingSlot = Pick<
+  Booking,
+  'booking_date' | 'start_time' | 'end_time' | 'all_day' | 'full_evening' | 'overnight'
+>;
+
+export function formatBookingTimeLabel(
+  booking: Pick<Booking, 'all_day' | 'full_evening' | 'start_time' | 'end_time' | 'overnight'>
+): string {
   if (booking.all_day) {
-    return 'Full day';
+    return 'Full day (6am–5pm)';
+  }
+  if (booking.full_evening) {
+    return 'Full evening (5pm–10pm)';
   }
   const start = (booking.start_time || '').slice(0, 5);
   const end = (booking.end_time || '').slice(0, 5);
@@ -14,14 +30,22 @@ export function formatBookingTimeLabel(booking: Pick<Booking, 'all_day' | 'start
 }
 
 /** Absolute minute index for overlap checks (day index * 1440 + time). */
-export function bookingIntervalMinutes(
-  booking: Pick<Booking, 'booking_date' | 'start_time' | 'end_time' | 'all_day' | 'overnight'>
-): { start: number; end: number } {
+export function bookingIntervalMinutes(booking: BookingSlot): { start: number; end: number } {
   const dayIndex = dateStringToDayIndex(booking.booking_date);
   const dayStart = dayIndex * 1440;
 
   if (booking.all_day) {
-    return { start: dayStart, end: dayStart + 1440 };
+    return {
+      start: dayStart + timeToMinutes(FULL_DAY_START),
+      end: dayStart + timeToMinutes(FULL_DAY_END)
+    };
+  }
+
+  if (booking.full_evening) {
+    return {
+      start: dayStart + timeToMinutes(FULL_EVENING_START),
+      end: dayStart + timeToMinutes(FULL_EVENING_END)
+    };
   }
 
   const start = dayStart + timeToMinutes(booking.start_time);
@@ -33,8 +57,8 @@ export function bookingIntervalMinutes(
 }
 
 export function bookingsOverlap(
-  a: Pick<Booking, 'booking_date' | 'start_time' | 'end_time' | 'all_day' | 'overnight' | 'status'>,
-  b: Pick<Booking, 'booking_date' | 'start_time' | 'end_time' | 'all_day' | 'overnight' | 'status'>
+  a: Pick<Booking, 'booking_date' | 'start_time' | 'end_time' | 'all_day' | 'full_evening' | 'overnight' | 'status'>,
+  b: Pick<Booking, 'booking_date' | 'start_time' | 'end_time' | 'all_day' | 'full_evening' | 'overnight' | 'status'>
 ): boolean {
   if (a.status === 'rejected' || b.status === 'rejected') {
     return false;

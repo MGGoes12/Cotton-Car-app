@@ -1,7 +1,14 @@
 import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { bookingsOverlap } from '../../booking-interval.utils';
-import { BOOKING_REASONS } from '../../booking.constants';
+import {
+  BOOKING_REASONS,
+  FULL_DAY_END,
+  FULL_DAY_START,
+  FULL_EVENING_END,
+  FULL_EVENING_START,
+  TRIP_TYPE_HINTS
+} from '../../booking.constants';
 import { Booking, SupabaseService, UserProfile } from '../../supabase.service';
 import { addMinutes, timeToMinutes } from '../../time.utils';
 
@@ -18,6 +25,7 @@ export class BookingComponent implements OnInit {
   startTime = '09:00';
   endTime = '17:00';
   allDay = false;
+  fullEvening = false;
   overnight = false;
   reason = '';
   expectedStartKm = 0;
@@ -33,6 +41,11 @@ export class BookingComponent implements OnInit {
 
   get minEndTime(): string | undefined {
     return this.overnight ? undefined : addMinutes(this.startTime, this.timeMinuteStep, this.timeMinuteStep);
+  }
+
+  get tripTypeHint(): string | null {
+    if (!this.reason) return null;
+    return TRIP_TYPE_HINTS[this.reason as keyof typeof TRIP_TYPE_HINTS] ?? null;
   }
 
   ngOnInit(): void {
@@ -62,8 +75,7 @@ export class BookingComponent implements OnInit {
   }
 
   onEndTimeChange(value: string) {
-    if (this.allDay) {
-      this.endTime = value;
+    if (this.allDay || this.fullEvening) {
       return;
     }
     if (this.overnight) {
@@ -83,6 +95,21 @@ export class BookingComponent implements OnInit {
   onAllDayChange() {
     if (this.allDay) {
       this.overnight = false;
+      this.fullEvening = false;
+      this.startTime = FULL_DAY_START;
+      this.endTime = FULL_DAY_END;
+      this.timeRangeError = '';
+      return;
+    }
+    this.syncTimeRange(false);
+  }
+
+  onFullEveningChange() {
+    if (this.fullEvening) {
+      this.allDay = false;
+      this.overnight = false;
+      this.startTime = FULL_EVENING_START;
+      this.endTime = FULL_EVENING_END;
       this.timeRangeError = '';
       return;
     }
@@ -92,6 +119,7 @@ export class BookingComponent implements OnInit {
   onOvernightChange() {
     if (this.overnight) {
       this.allDay = false;
+      this.fullEvening = false;
       if (timeToMinutes(this.endTime) > timeToMinutes(this.startTime)) {
         this.endTime = '07:00';
       }
@@ -102,7 +130,7 @@ export class BookingComponent implements OnInit {
   }
 
   private syncTimeRange(showHint: boolean) {
-    if (this.allDay || this.overnight) {
+    if (this.allDay || this.fullEvening || this.overnight) {
       this.timeRangeError = '';
       return;
     }
@@ -114,6 +142,42 @@ export class BookingComponent implements OnInit {
     } else {
       this.timeRangeError = '';
     }
+  }
+
+  private slotTimes(): { start: string; end: string } {
+    if (this.allDay) {
+      return { start: FULL_DAY_START, end: FULL_DAY_END };
+    }
+    if (this.fullEvening) {
+      return { start: FULL_EVENING_START, end: FULL_EVENING_END };
+    }
+    return { start: this.startTime, end: this.endTime };
+  }
+
+  private overlapErrorMessage(conflicting: Booking, proposed: ReturnType<typeof this.buildProposedBooking>): string {
+    const isOwnBooking = conflicting.user_profile_id === this.user!.id;
+    const who = isOwnBooking ? 'You already have a booking' : 'Another user has already booked the car';
+
+    if (proposed.all_day) {
+      return `${who} during full day hours (6am–5pm).`;
+    }
+    if (proposed.full_evening) {
+      return `${who} during full evening hours (5pm–10pm).`;
+    }
+    return `${who} at this time.`;
+  }
+
+  private buildProposedBooking() {
+    const { start, end } = this.slotTimes();
+    return {
+      booking_date: this.bookingDate,
+      start_time: start,
+      end_time: end,
+      all_day: this.allDay,
+      full_evening: this.fullEvening,
+      overnight: this.overnight,
+      status: 'pending' as const
+    };
   }
 
   async submitBooking() {
@@ -132,38 +196,30 @@ export class BookingComponent implements OnInit {
       return;
     }
     await this.refreshOverlapData();
-    const end = this.allDay ? '23:59' : this.endTime;
     this.syncTimeRange(true);
-    if (!this.allDay && !this.overnight && timeToMinutes(this.endTime) <= timeToMinutes(this.startTime)) {
+    if (!this.allDay && !this.fullEvening && !this.overnight && timeToMinutes(this.endTime) <= timeToMinutes(this.startTime)) {
       this.error = 'Expected return time must be after your leaving time.';
       return;
     }
-    const proposed = {
-      booking_date: this.bookingDate,
-      start_time: this.startTime,
-      end_time: end,
-      all_day: this.allDay,
-      overnight: this.overnight,
-      status: 'pending' as const
-    };
+
+    const proposed = this.buildProposedBooking();
     const conflicting = this.allBookings.find(b =>
       b.status !== 'rejected' && b.status !== 'completed' && bookingsOverlap(b, proposed)
     );
     if (conflicting) {
-      const isOwnBooking = conflicting.user_profile_id === this.user!.id;
-      this.error = isOwnBooking
-        ? 'You already have a booking at this time.'
-        : 'Another user has already booked the car at this time.';
+      this.error = this.overlapErrorMessage(conflicting, proposed);
       return;
     }
 
+    const { start, end } = this.slotTimes();
     const newBooking: Partial<Booking> = {
       user_profile_id: this.user.id,
       user_email: this.user.email,
       booking_date: this.bookingDate,
-      start_time: this.startTime,
+      start_time: start,
       end_time: end,
       all_day: this.allDay,
+      full_evening: this.fullEvening,
       overnight: this.overnight,
       reason: this.reason,
       expected_start_km: this.expectedStartKm,
@@ -179,6 +235,8 @@ export class BookingComponent implements OnInit {
     this.reason = '';
     this.expectedStartKm = 0;
     this.overnight = false;
+    this.allDay = false;
+    this.fullEvening = false;
     await this.refreshOverlapData();
   }
 }

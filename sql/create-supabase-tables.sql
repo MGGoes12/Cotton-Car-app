@@ -20,6 +20,7 @@ create table bookings (
   start_time time not null,
   end_time time not null,
   all_day boolean not null default false,
+  full_evening boolean not null default false,
   overnight boolean not null default false,
   reason text not null,
   expected_start_km int not null,
@@ -31,7 +32,16 @@ create table bookings (
   updated_at timestamptz not null default now(),
   booking_range tsrange generated always as (
     case
-      when all_day then tsrange(booking_date::timestamp, (booking_date + 1)::timestamp, '[)')
+      when all_day then tsrange(
+        booking_date + time '06:00',
+        booking_date + time '17:00',
+        '[)'
+      )
+      when full_evening then tsrange(
+        booking_date + time '17:00',
+        booking_date + time '22:00',
+        '[)'
+      )
       when overnight then tsrange(
         booking_date + start_time,
         booking_date + interval '1 day' + end_time,

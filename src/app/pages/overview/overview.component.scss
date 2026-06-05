@@ -334,6 +334,7 @@ button.danger {
   box-shadow: 0 2px 5px rgba(5, 150, 105, 0.25);
 
   &.all-day { background: linear-gradient(135deg, var(--brand-800), var(--brand-700)); }
+  &.full-evening { background: linear-gradient(135deg, #1d4ed8, #3b82f6); }
 
   .chip-time { display: block; font-size: 0.64rem; opacity: 0.9; font-weight: 500; }
   .chip-name {

@@ -27,6 +27,7 @@ export interface Booking {
   start_time: string;
   end_time: string;
   all_day: boolean;
+  full_evening?: boolean;
   overnight?: boolean;
   reason: string;
   expected_start_km: number;

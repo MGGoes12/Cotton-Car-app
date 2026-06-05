@@ -1,11 +1,19 @@
+<div *ngIf="tripTypeHint" class="trip-type-notice" role="status">
+  <span>{{ tripTypeHint }}</span>
+</div>
+
 <div class="page-card">
+  <div class="booking-advance-banner" role="note">
+    Trips should ideally be booked 12 hours in advance.
+  </div>
+
   <div class="card-head">
     <span class="head-icon" aria-hidden="true">
       <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M12 14v4M10 16h4"/></svg>
     </span>
     <div>
       <h2>Book the car</h2>
-      <p class="small-text">Pick a day, trip type, and expected odometer reading. Admin approval is required.</p>
+      <p class="small-text">Pick a day, trip type, and estimated distance. Admin approval is required.</p>
     </div>
   </div>
 
@@ -26,12 +34,20 @@
     <label class="toggle-row" [class.on]="allDay">
       <input type="checkbox" [(ngModel)]="allDay" name="allDay" (ngModelChange)="onAllDayChange()" />
       <span>
-        <strong>Whole day booking</strong>
-        <span class="small-text">Reserve the car for the entire day</span>
+        <strong>Full day booking</strong>
+        <span class="small-text">Reserve the car from 6am to 5pm</span>
       </span>
     </label>
 
-    <label class="toggle-row" [class.on]="overnight" *ngIf="!allDay">
+    <label class="toggle-row" [class.on]="fullEvening" *ngIf="!allDay">
+      <input type="checkbox" [(ngModel)]="fullEvening" name="fullEvening" (ngModelChange)="onFullEveningChange()" />
+      <span>
+        <strong>Full evening booking</strong>
+        <span class="small-text">Reserve the car from 5pm to 10pm</span>
+      </span>
+    </label>
+
+    <label class="toggle-row" [class.on]="overnight" *ngIf="!allDay && !fullEvening">
       <input type="checkbox" [(ngModel)]="overnight" name="overnight" (ngModelChange)="onOvernightChange()" />
       <span>
         <strong>Overnight trip</strong>
@@ -39,7 +55,7 @@
       </span>
     </label>
 
-    <div class="field-row field-row--times" *ngIf="!allDay">
+    <div class="field-row field-row--times" *ngIf="!allDay && !fullEvening">
       <label class="time-field">
         Leaving time
         <app-time-picker
@@ -58,12 +74,12 @@
         ></app-time-picker>
       </label>
     </div>
-    <p *ngIf="overnight && !allDay" class="time-range-hint overnight-hint">Leaving {{ startTime }} on {{ bookingDate }} → returning {{ endTime }} the next day.</p>
+    <p *ngIf="overnight && !allDay && !fullEvening" class="time-range-hint overnight-hint">Leaving {{ startTime }} on {{ bookingDate }} → returning {{ endTime }} the next day.</p>
     <p *ngIf="timeRangeError" class="time-range-hint" role="alert">{{ timeRangeError }}</p>
 
     <label>
-      Expected starting KM
-      <input type="number" [(ngModel)]="expectedStartKm" name="expectedStartKm" min="0" placeholder="Odometer reading" required />
+      Estimated KMs to be traveled
+      <input type="number" [(ngModel)]="expectedStartKm" name="expectedStartKm" min="0" placeholder="Distance in km" required />
     </label>
     <button type="submit" class="primary">Submit booking request</button>
   </form>

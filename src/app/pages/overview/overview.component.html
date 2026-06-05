@@ -52,7 +52,7 @@
           [class]="'calendar-day' + (day.value ? '' : ' empty') + (day.booked ? ' booked' : '') + (day.isToday ? ' today' : '')"
         >
           <div *ngIf="day.value" class="day-number">{{ day.label }}</div>
-          <div *ngFor="let b of day.bookings" class="booking-chip" [class.all-day]="b.all_day" [title]="b.reason + ' (' + b.user_email + ')'">
+          <div *ngFor="let b of day.bookings" class="booking-chip" [class.all-day]="b.all_day" [class.full-evening]="b.full_evening" [title]="b.reason + ' (' + b.user_email + ')'">
             <span class="chip-time">{{ formatTime(b) }}</span>
             <span class="chip-name">{{ b.user_email | slice:0:(b.user_email.indexOf('@')) }}</span>
           </div>
@@ -62,7 +62,7 @@
 
     <div class="cal-legend">
       <span><i class="dot part"></i> Timed booking</span>
-      <span><i class="dot all"></i> All day</span>
+      <span><i class="dot all"></i> Full day / evening</span>
       <span><i class="dot today-dot"></i> Today</span>
     </div>
   </div>
