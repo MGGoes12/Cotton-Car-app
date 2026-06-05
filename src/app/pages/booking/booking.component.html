@@ -1,7 +1,3 @@
-<div *ngIf="tripTypeHint" class="trip-type-notice" role="status">
-  <span>{{ tripTypeHint }}</span>
-</div>
-
 <div class="page-card">
   <div class="booking-advance-banner" role="note">
     Trips should ideally be booked 12 hours in advance.
@@ -26,10 +22,25 @@
     <fieldset class="reason-fieldset">
       <legend>Trip type</legend>
       <label *ngFor="let option of bookingReasons" class="reason-option">
-        <input type="radio" [(ngModel)]="reason" name="reason" [value]="option" required />
+        <input type="radio" [(ngModel)]="tripType" name="tripType" [value]="option" (ngModelChange)="onTripTypeChange()" required />
         <span>{{ option }}</span>
       </label>
     </fieldset>
+
+    <div *ngIf="tripTypeHint" class="trip-type-notice" role="status">
+      {{ tripTypeHint }}
+    </div>
+
+    <label *ngIf="isLandlordTripSelected">
+      Reason for landlord trip
+      <textarea
+        [(ngModel)]="landlordTripReason"
+        name="landlordTripReason"
+        rows="3"
+        placeholder="e.g. Property inspection, tenant meeting..."
+        required
+      ></textarea>
+    </label>
 
     <label class="toggle-row" [class.on]="allDay">
       <input type="checkbox" [(ngModel)]="allDay" name="allDay" (ngModelChange)="onAllDayChange()" />

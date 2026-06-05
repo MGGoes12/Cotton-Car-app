@@ -19,7 +19,7 @@ export const TRIP_TYPE_HINTS: Partial<Record<BookingReason, string>> = {
 export const LANDLORD_TRIP_REASON: BookingReason = 'Landlord trip';
 
 export function isLandlordTrip(reason: string | undefined | null): boolean {
-  return (reason || '').trim().toLowerCase() === LANDLORD_TRIP_REASON.toLowerCase();
+  return (reason || '').trim().toLowerCase().startsWith(LANDLORD_TRIP_REASON.toLowerCase());
 }
 
 export const REJECTED_VISIBLE_DAYS = 7;

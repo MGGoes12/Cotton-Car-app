@@ -7,6 +7,7 @@ import {
   FULL_DAY_START,
   FULL_EVENING_END,
   FULL_EVENING_START,
+  LANDLORD_TRIP_REASON,
   TRIP_TYPE_HINTS
 } from '../../booking.constants';
 import { Booking, SupabaseService, UserProfile } from '../../supabase.service';
@@ -27,13 +28,15 @@ export class BookingComponent implements OnInit {
   allDay = false;
   fullEvening = false;
   overnight = false;
-  reason = '';
+  tripType = '';
+  landlordTripReason = '';
   expectedStartKm = 0;
   message = '';
   error = '';
   timeRangeError = '';
   readonly timeMinuteStep = 5;
   readonly minBookingDate = this.formatDate(new Date());
+  readonly landlordTripType = LANDLORD_TRIP_REASON;
 
   private readonly destroyRef = inject(DestroyRef);
 
@@ -44,8 +47,12 @@ export class BookingComponent implements OnInit {
   }
 
   get tripTypeHint(): string | null {
-    if (!this.reason) return null;
-    return TRIP_TYPE_HINTS[this.reason as keyof typeof TRIP_TYPE_HINTS] ?? null;
+    if (!this.tripType) return null;
+    return TRIP_TYPE_HINTS[this.tripType as keyof typeof TRIP_TYPE_HINTS] ?? null;
+  }
+
+  get isLandlordTripSelected(): boolean {
+    return this.tripType === LANDLORD_TRIP_REASON;
   }
 
   ngOnInit(): void {
@@ -60,6 +67,13 @@ export class BookingComponent implements OnInit {
 
   async refreshOverlapData() {
     this.allBookings = await this.supabase.getBookingsNearDate(this.bookingDate);
+  }
+
+  onTripTypeChange() {
+    if (!this.isLandlordTripSelected) {
+      this.landlordTripReason = '';
+    }
+    this.error = '';
   }
 
   private formatDate(date: Date) {
@@ -92,27 +106,37 @@ export class BookingComponent implements OnInit {
     }
   }
 
-  onAllDayChange() {
+  async onAllDayChange() {
     if (this.allDay) {
       this.overnight = false;
       this.fullEvening = false;
       this.startTime = FULL_DAY_START;
       this.endTime = FULL_DAY_END;
       this.timeRangeError = '';
+      const ok = await this.validateSlotOverlap();
+      if (!ok) {
+        this.allDay = false;
+      }
       return;
     }
+    this.error = '';
     this.syncTimeRange(false);
   }
 
-  onFullEveningChange() {
+  async onFullEveningChange() {
     if (this.fullEvening) {
       this.allDay = false;
       this.overnight = false;
       this.startTime = FULL_EVENING_START;
       this.endTime = FULL_EVENING_END;
       this.timeRangeError = '';
+      const ok = await this.validateSlotOverlap();
+      if (!ok) {
+        this.fullEvening = false;
+      }
       return;
     }
+    this.error = '';
     this.syncTimeRange(false);
   }
 
@@ -180,6 +204,31 @@ export class BookingComponent implements OnInit {
     };
   }
 
+  private findConflictingBooking() {
+    const proposed = this.buildProposedBooking();
+    const conflicting = this.allBookings.find(b =>
+      b.status !== 'rejected' && b.status !== 'completed' && bookingsOverlap(b, proposed)
+    );
+    return conflicting ? { conflicting, proposed } : null;
+  }
+
+  private async validateSlotOverlap(): Promise<boolean> {
+    await this.refreshOverlapData();
+    const conflict = this.findConflictingBooking();
+    if (!conflict) {
+      return true;
+    }
+    this.error = this.overlapErrorMessage(conflict.conflicting, conflict.proposed);
+    return false;
+  }
+
+  private bookingReason(): string {
+    if (this.isLandlordTripSelected) {
+      return `${LANDLORD_TRIP_REASON}: ${this.landlordTripReason.trim()}`;
+    }
+    return this.tripType;
+  }
+
   async submitBooking() {
     this.error = '';
     this.message = '';
@@ -187,8 +236,12 @@ export class BookingComponent implements OnInit {
       this.error = 'You must be logged in to create a booking.';
       return;
     }
-    if (!this.reason || !this.bookingDate) {
+    if (!this.tripType || !this.bookingDate) {
       this.error = 'Please choose a trip type and booking date.';
+      return;
+    }
+    if (this.isLandlordTripSelected && !this.landlordTripReason.trim()) {
+      this.error = 'Please enter a reason for the landlord trip.';
       return;
     }
     if (this.bookingDate < this.minBookingDate) {
@@ -202,12 +255,9 @@ export class BookingComponent implements OnInit {
       return;
     }
 
-    const proposed = this.buildProposedBooking();
-    const conflicting = this.allBookings.find(b =>
-      b.status !== 'rejected' && b.status !== 'completed' && bookingsOverlap(b, proposed)
-    );
-    if (conflicting) {
-      this.error = this.overlapErrorMessage(conflicting, proposed);
+    const conflict = this.findConflictingBooking();
+    if (conflict) {
+      this.error = this.overlapErrorMessage(conflict.conflicting, conflict.proposed);
       return;
     }
 
@@ -221,7 +271,7 @@ export class BookingComponent implements OnInit {
       all_day: this.allDay,
       full_evening: this.fullEvening,
       overnight: this.overnight,
-      reason: this.reason,
+      reason: this.bookingReason(),
       expected_start_km: this.expectedStartKm,
       status: 'pending'
     };
@@ -232,7 +282,8 @@ export class BookingComponent implements OnInit {
       return;
     }
     this.message = 'Booking request created and waiting for admin approval.';
-    this.reason = '';
+    this.tripType = '';
+    this.landlordTripReason = '';
     this.expectedStartKm = 0;
     this.overnight = false;
     this.allDay = false;
