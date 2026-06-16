@@ -1,7 +1,7 @@
 -- Sample profile data for family users
 
 insert into profiles (email, full_name, is_admin) values
-  ('mark@thecottonclub.co.za', 'Mark', false),
+  ('mark@thecottonclub.co.za', 'Mark', true),
   ('david@thecottonclub.co.za', 'David', false),
   ('lyndsay@lcproofing.co.za', 'Lyndsay', true);
 

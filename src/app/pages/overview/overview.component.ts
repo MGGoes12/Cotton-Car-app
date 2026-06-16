@@ -3,7 +3,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { bookingAppliesToCalendarDay, formatBookingTimeLabel } from '../../booking-interval.utils';
 import { shrekForMonth } from '../../shrek-months';
 import { isLandlordTrip } from '../../booking.constants';
-import { Booking, PasswordResetRequest, SupabaseService, UserProfile } from '../../supabase.service';
+import { formatRand, roundMoney, tripChargeAmount } from '../../settlement.utils';
+import { Booking, PasswordResetRequest, SettlementRequest, SupabaseService, UserProfile } from '../../supabase.service';
 
 interface CalendarDay {
   value: string;
@@ -17,6 +18,8 @@ interface ReportTrip {
   reason: string;
   date: string;
   km: number | null;
+  cost: number;
+  settled: boolean;
 }
 
 interface ReportGroup {
@@ -24,6 +27,8 @@ interface ReportGroup {
   name: string;
   totalKm: number;
   landlordKm: number;
+  settledAmount: number;
+  owingAmount: number;
   trips: ReportTrip[];
   expanded: boolean;
 }
@@ -54,10 +59,13 @@ export class OverviewComponent implements OnInit {
   showReport = false;
   showReportModal = false;
   reportGroups: ReportGroup[] = [];
+  pendingSettlements: SettlementRequest[] = [];
+  odometerMismatches: Booking[] = [];
   message = '';
   error = '';
 
   formatTime = formatBookingTimeLabel;
+  formatRand = formatRand;
 
   constructor(
     public supabase: SupabaseService,
@@ -74,8 +82,14 @@ export class OverviewComponent implements OnInit {
         if (user.is_admin) {
           this.pendingResets = await this.supabase.getPendingPasswordResets();
           this.users = await this.supabase.getUsers();
+          await this.loadAdminAlerts();
         }
       });
+  }
+
+  private async loadAdminAlerts() {
+    this.pendingSettlements = await this.supabase.getPendingSettlementsForAdmin();
+    this.odometerMismatches = await this.supabase.getOdometerMismatchBookings();
   }
 
   get pendingCount(): number {
@@ -214,14 +228,18 @@ export class OverviewComponent implements OnInit {
   }
 
   exportReportCsv() {
-    const rows = ['User,Date,Trip type,Km'];
+    const rows = ['User,Date,Trip type,Km,Cost (R),Settled'];
     for (const g of this.reportGroups) {
       for (const t of g.trips) {
-        rows.push(`"${g.email}","${t.date}","${t.reason}",${t.km ?? ''}`);
+        rows.push(`"${g.email}","${t.date}","${t.reason}",${t.km ?? ''},${t.cost.toFixed(2)},${t.settled ? 'yes' : 'no'}`);
       }
+      rows.push(`"${g.email}","","","","Settled total",${g.settledAmount.toFixed(2)}`);
+      rows.push(`"${g.email}","","","","Still owing",${g.owingAmount.toFixed(2)}`);
     }
-    rows.push('', `"Total","","",${this.reportTotalKm}`);
-    rows.push(`"Landlord trips","","",${this.reportLandlordKm}`);
+    rows.push('', `"Total km","","",${this.reportTotalKm}`);
+    rows.push(`"Settled","","",${this.reportSettledTotal.toFixed(2)}`);
+    rows.push(`"Still owing","","",${this.reportOwingTotal.toFixed(2)}`);
+    rows.push(`"Landlord trips km","","",${this.reportLandlordKm}`);
     const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -242,6 +260,8 @@ export class OverviewComponent implements OnInit {
           name: email.includes('@') ? email.slice(0, email.indexOf('@')) : email,
           totalKm: 0,
           landlordKm: 0,
+          settledAmount: 0,
+          owingAmount: 0,
           trips: [],
           expanded: false
         };
@@ -256,7 +276,24 @@ export class OverviewComponent implements OnInit {
           group.landlordKm += km;
         }
       }
-      group.trips.push({ reason: b.reason || 'No reason given', date: b.booking_date, km });
+
+      const cost = km != null ? tripChargeAmount(b) : 0;
+      const settled = !!b.settled_in_settlement_id;
+      if (cost > 0) {
+        if (settled) {
+          group.settledAmount = roundMoney(group.settledAmount + cost);
+        } else {
+          group.owingAmount = roundMoney(group.owingAmount + cost);
+        }
+      }
+
+      group.trips.push({
+        reason: b.reason || 'No reason given',
+        date: b.booking_date,
+        km,
+        cost,
+        settled
+      });
     }
     this.reportGroups = Array.from(map.values()).sort((a, b) => b.totalKm - a.totalKm);
   }
@@ -267,6 +304,38 @@ export class OverviewComponent implements OnInit {
 
   get reportLandlordKm(): number {
     return this.reportGroups.reduce((sum, g) => sum + g.landlordKm, 0);
+  }
+
+  get reportSettledTotal(): number {
+    return roundMoney(this.reportGroups.reduce((sum, g) => sum + g.settledAmount, 0));
+  }
+
+  get reportOwingTotal(): number {
+    return roundMoney(this.reportGroups.reduce((sum, g) => sum + g.owingAmount, 0));
+  }
+
+  async approveSettlement(settlement: SettlementRequest) {
+    this.error = '';
+    this.message = '';
+    const result = await this.supabase.reviewSettlement(settlement.id, 'approved');
+    if (result.error) {
+      this.error = result.error;
+      return;
+    }
+    this.message = `Settlement approved for ${settlement.user_email} (${formatRand(+settlement.amount)}).`;
+    await this.loadAdminAlerts();
+  }
+
+  async rejectSettlement(settlement: SettlementRequest) {
+    this.error = '';
+    this.message = '';
+    const result = await this.supabase.reviewSettlement(settlement.id, 'rejected');
+    if (result.error) {
+      this.error = result.error;
+      return;
+    }
+    this.message = `Settlement rejected for ${settlement.user_email}.`;
+    await this.loadAdminAlerts();
   }
 
   closeReport() {

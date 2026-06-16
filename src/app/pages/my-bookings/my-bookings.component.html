@@ -9,6 +9,26 @@
     </div>
   </div>
 
+  <div class="debt-card">
+    <div class="debt-head">
+      <strong>Current balance</strong>
+      <span class="debt-amount">{{ formatRand(currentDebt) }}</span>
+    </div>
+    <p class="small-text debt-rates">Private use R1/km · Student use R0.40/km · Landlord trips free</p>
+    <p *ngIf="pendingSettlement" class="settlement-pending">
+      Settlement of {{ formatRand(+pendingSettlement.amount) }} awaiting admin approval.
+    </p>
+    <button
+      *ngIf="canRequestSettlement"
+      type="button"
+      class="primary"
+      (click)="requestSettlement()"
+      [disabled]="settling"
+    >
+      {{ settling ? 'Submitting…' : 'Request settlement' }}
+    </button>
+  </div>
+
   <div *ngIf="!hasAnyBookings" class="empty-state">No bookings yet. Tap “New Booking” to reserve the car.</div>
 
   <ng-container *ngIf="activeBookings.length">
@@ -49,6 +69,9 @@
       <span class="badge" [ngClass]="booking.status">{{ booking.status }}</span>
     </div>
     <div class="small-text">{{ booking.reason }}</div>
+    <p *ngIf="booking.odometer_mismatch" class="odometer-flag" role="alert">
+      Odometer mismatch flagged (expected {{ booking.odometer_mismatch_expected }}, entered {{ booking.odometer_mismatch_actual }}).
+    </p>
 
     <div class="meta-grid">
       <div class="meta">
@@ -90,8 +113,13 @@
     <form (ngSubmit)="saveOdometer()">
       <label>
         Actual start KM
-        <input type="number" [(ngModel)]="actualStartKm" name="actualStartKm" />
+        <input type="number" [(ngModel)]="actualStartKm" name="actualStartKm" (ngModelChange)="onActualStartKmChange()" />
       </label>
+      <p *ngIf="expectedStartKmFromLastTrip != null" class="small-text odometer-hint">
+        Last trip ended at {{ expectedStartKmFromLastTrip }} km.
+      </p>
+      <p *ngIf="priorDriverWarning" class="odometer-warning" role="alert">{{ priorDriverWarning }}</p>
+      <p *ngIf="odometerWarning" class="odometer-warning" role="alert">{{ odometerWarning }}</p>
       <label>
         Actual end KM
         <input type="number" [(ngModel)]="actualEndKm" name="actualEndKm" />

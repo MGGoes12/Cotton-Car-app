@@ -1,4 +1,4 @@
-import { bookingsOverlap, formatBookingTimeLabel } from './booking-interval.utils';
+import { bookingsOverlap, findPrecedingHandoffBooking, formatBookingTimeLabel, isMissingEndKm } from './booking-interval.utils';
 import { Booking } from './supabase.service';
 
 function booking(partial: Partial<Booking>): Booking {
@@ -83,6 +83,31 @@ describe('bookingsOverlap', () => {
     const evening = booking({ full_evening: true, start_time: '17:00', end_time: '22:00', status: 'approved' });
     const slot = booking({ start_time: '18:00', end_time: '19:00' });
     expect(bookingsOverlap(evening, slot)).toBe(true);
+  });
+});
+
+describe('findPrecedingHandoffBooking', () => {
+  it('finds overnight driver before next timed booking', () => {
+    const daniel = booking({
+      id: 'daniel',
+      user_email: 'daniel@test.com',
+      booking_date: '2026-06-16',
+      start_time: '14:00',
+      end_time: '10:00',
+      overnight: true,
+      status: 'approved'
+    });
+    const david = booking({
+      id: 'david',
+      user_email: 'david@test.com',
+      booking_date: '2026-06-17',
+      start_time: '10:00',
+      end_time: '14:00',
+      status: 'approved'
+    });
+    const prior = findPrecedingHandoffBooking([daniel, david], david);
+    expect(prior?.user_email).toBe('daniel@test.com');
+    expect(isMissingEndKm(daniel)).toBe(true);
   });
 });
 

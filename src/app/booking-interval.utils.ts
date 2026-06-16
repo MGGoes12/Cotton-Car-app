@@ -91,3 +91,32 @@ export function bookingAppliesToCalendarDay(
 function dateStringToDayIndex(dateStr: string): number {
   return Math.floor(new Date(`${dateStr}T12:00:00`).getTime() / 86400000);
 }
+
+type HandoffBooking = Pick<
+  Booking,
+  'id' | 'booking_date' | 'start_time' | 'end_time' | 'all_day' | 'full_evening' | 'overnight' | 'status' | 'user_email' | 'actual_end_km'
+>;
+
+/** Booking that should have returned the car immediately before this trip starts. */
+export function findPrecedingHandoffBooking(all: HandoffBooking[], current: HandoffBooking): HandoffBooking | null {
+  if (!current.id) return null;
+
+  const currentStart = bookingIntervalMinutes(current).start;
+  let best: HandoffBooking | null = null;
+  let bestEnd = -Infinity;
+
+  for (const b of all) {
+    if (b.id === current.id || b.status === 'rejected') continue;
+    const { end } = bookingIntervalMinutes(b);
+    if (end <= currentStart && end > bestEnd) {
+      best = b;
+      bestEnd = end;
+    }
+  }
+
+  return best;
+}
+
+export function isMissingEndKm(booking: Pick<Booking, 'status' | 'actual_end_km'>): boolean {
+  return booking.actual_end_km == null;
+}

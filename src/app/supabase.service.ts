@@ -35,8 +35,23 @@ export interface Booking {
   actual_end_km?: number;
   return_time?: string;
   status: 'pending' | 'approved' | 'rejected' | 'completed';
+  settled_in_settlement_id?: string | null;
+  odometer_mismatch?: boolean;
+  odometer_mismatch_expected?: number | null;
+  odometer_mismatch_actual?: number | null;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface SettlementRequest {
+  id: string;
+  user_profile_id: string;
+  user_email: string;
+  amount: number;
+  status: 'pending' | 'approved' | 'rejected';
+  created_at?: string;
+  reviewed_at?: string | null;
+  reviewed_by?: string | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -289,6 +304,11 @@ export class SupabaseService {
     this.authUser$.next(null);
   }
 
+  async getAccessToken(): Promise<string | null> {
+    const { data } = await this.supabase.auth.getSession();
+    return data.session?.access_token ?? null;
+  }
+
   /** Current user's bookings only (My Trips page). */
   async getMyBookings(): Promise<Booking[]> {
     const user = this.authUser$.getValue();
@@ -385,5 +405,164 @@ export class SupabaseService {
       .gte('booking_date', fromDate)
       .lte('booking_date', toDate)
       .order('booking_date', { ascending: true }) as any;
+  }
+
+  async getLastCompletedTrip(userProfileId: string, beforeBookingId?: string): Promise<Booking | null> {
+    let query = this.supabase
+      .from('bookings')
+      .select('*')
+      .eq('user_profile_id', userProfileId)
+      .eq('status', 'completed')
+      .not('actual_end_km', 'is', null)
+      .order('booking_date', { ascending: false })
+      .order('updated_at', { ascending: false })
+      .limit(1) as any;
+
+    if (beforeBookingId) {
+      query = query.neq('id', beforeBookingId);
+    }
+
+    const { data, error } = await query;
+    if (error || !data?.length) return null;
+    return data[0];
+  }
+
+  async getMyPendingSettlement(): Promise<SettlementRequest | null> {
+    const user = this.authUser$.getValue();
+    if (!user) return null;
+    const { data, error } = await (this.supabase
+      .from('settlement_requests')
+      .select('*')
+      .eq('user_profile_id', user.id)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle() as any);
+    if (error || !data) return null;
+    return data;
+  }
+
+  async getMySettlements(): Promise<SettlementRequest[]> {
+    const user = this.authUser$.getValue();
+    if (!user) return [];
+    const { data, error } = await (this.supabase
+      .from('settlement_requests')
+      .select('*')
+      .eq('user_profile_id', user.id)
+      .order('created_at', { ascending: false }) as any);
+    if (error) return [];
+    return data || [];
+  }
+
+  async getPendingSettlementsForAdmin(): Promise<SettlementRequest[]> {
+    const user = this.authUser$.getValue();
+    if (!user?.is_admin) return [];
+    const { data, error } = await (this.supabase
+      .from('settlement_requests')
+      .select('*')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: true }) as any);
+    if (error) return [];
+    return data || [];
+  }
+
+  async getOdometerMismatchBookings(): Promise<Booking[]> {
+    const user = this.authUser$.getValue();
+    if (!user?.is_admin) return [];
+    const { data, error } = await (this.supabase
+      .from('bookings')
+      .select('*')
+      .eq('odometer_mismatch', true)
+      .order('booking_date', { ascending: false }) as any);
+    if (error) return [];
+    return data || [];
+  }
+
+  async requestSettlement(
+    amount: number,
+    items: { booking_id: string; km: number; rate: number; amount: number }[]
+  ): Promise<{ error?: string; data?: SettlementRequest }> {
+    const user = this.authUser$.getValue();
+    if (!user) return { error: 'You must be logged in.' };
+    if (amount <= 0 || !items.length) return { error: 'No balance to settle.' };
+
+    const pending = await this.getMyPendingSettlement();
+    if (pending) return { error: 'You already have a pending settlement request.' };
+
+    const { data: created, error } = await (this.supabase
+      .from('settlement_requests')
+      .insert({
+        user_profile_id: user.id,
+        user_email: user.email,
+        amount,
+        status: 'pending'
+      })
+      .select('*')
+      .single() as any);
+
+    if (error || !created) {
+      return { error: error?.message || 'Could not create settlement request.' };
+    }
+
+    const rows = items.map(item => ({
+      settlement_id: created.id,
+      booking_id: item.booking_id,
+      km: item.km,
+      rate: item.rate,
+      amount: item.amount
+    }));
+
+    const { error: itemsError } = await (this.supabase.from('settlement_items').insert(rows) as any);
+    if (itemsError) {
+      await (this.supabase.from('settlement_requests').delete().eq('id', created.id) as any);
+      return { error: itemsError.message };
+    }
+
+    return { data: created };
+  }
+
+  async reviewSettlement(id: string, status: 'approved' | 'rejected'): Promise<{ error?: string }> {
+    const user = this.authUser$.getValue();
+    if (!user?.is_admin) return { error: 'Only admins can review settlements.' };
+
+    const { data: settlement, error: loadError } = await (this.supabase
+      .from('settlement_requests')
+      .select('*')
+      .eq('id', id)
+      .eq('status', 'pending')
+      .single() as any);
+
+    if (loadError || !settlement) {
+      return { error: 'Settlement request not found or already reviewed.' };
+    }
+
+    const { error: updateError } = await (this.supabase
+      .from('settlement_requests')
+      .update({
+        status,
+        reviewed_at: new Date().toISOString(),
+        reviewed_by: user.id
+      })
+      .eq('id', id) as any);
+
+    if (updateError) return { error: updateError.message };
+
+    if (status === 'approved') {
+      const { data: items, error: itemsError } = await (this.supabase
+        .from('settlement_items')
+        .select('booking_id')
+        .eq('settlement_id', id) as any);
+
+      if (itemsError) return { error: itemsError.message };
+
+      for (const item of items || []) {
+        await (this.supabase
+          .from('bookings')
+          .update({ settled_in_settlement_id: id })
+          .eq('id', item.booking_id) as any);
+      }
+    }
+
+    return {};
   }
 }

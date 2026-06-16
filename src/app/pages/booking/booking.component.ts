@@ -1,6 +1,6 @@
 import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { bookingsOverlap } from '../../booking-interval.utils';
+import { bookingsOverlap, formatBookingTimeLabel } from '../../booking-interval.utils';
 import {
   BOOKING_REASONS,
   FULL_DAY_END,
@@ -11,6 +11,7 @@ import {
   TRIP_TYPE_HINTS
 } from '../../booking.constants';
 import { Booking, SupabaseService, UserProfile } from '../../supabase.service';
+import { NotifyService } from '../../notify.service';
 import { addMinutes, timeToMinutes } from '../../time.utils';
 
 @Component({
@@ -40,7 +41,10 @@ export class BookingComponent implements OnInit {
 
   private readonly destroyRef = inject(DestroyRef);
 
-  constructor(private supabase: SupabaseService) {}
+  constructor(
+    private supabase: SupabaseService,
+    private notify: NotifyService
+  ) {}
 
   get minEndTime(): string | undefined {
     return this.overnight ? undefined : addMinutes(this.startTime, this.timeMinuteStep, this.timeMinuteStep);
@@ -281,6 +285,21 @@ export class BookingComponent implements OnInit {
       this.error = error.message;
       return;
     }
+
+    await this.notify.notifyAdmins('new_booking', {
+      userEmail: this.user.email,
+      bookingDate: this.bookingDate,
+      reason: newBooking.reason,
+      timeLabel: formatBookingTimeLabel({
+        all_day: this.allDay,
+        full_evening: this.fullEvening,
+        start_time: start,
+        end_time: end,
+        overnight: this.overnight
+      }),
+      estimatedKm: this.expectedStartKm
+    });
+
     this.message = 'Booking request created and waiting for admin approval.';
     this.tripType = '';
     this.landlordTripReason = '';

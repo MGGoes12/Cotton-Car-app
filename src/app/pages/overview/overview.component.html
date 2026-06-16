@@ -17,6 +17,14 @@
     <a routerLink="/all-bookings" class="primary">Review in All Bookings</a>
   </div>
 
+  <div *ngIf="user?.is_admin && pendingSettlements.length > 0" class="admin-banner settlement-banner">
+    <span>{{ pendingSettlements.length }} settlement request{{ pendingSettlements.length === 1 ? '' : 's' }} pending</span>
+  </div>
+
+  <div *ngIf="user?.is_admin && odometerMismatches.length > 0" class="admin-banner mismatch-banner">
+    <span>{{ odometerMismatches.length }} odometer mismatch{{ odometerMismatches.length === 1 ? '' : 'es' }} to review</span>
+  </div>
+
   <div class="cal-toolbar">
     <button type="button" class="icon-btn" (click)="previousMonth()" aria-label="Previous month">
       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
@@ -83,6 +91,38 @@
     <div class="modal-actions">
       <button type="button" class="primary" (click)="pullReport()">Generate</button>
       <button type="button" class="secondary" (click)="showReportModal = false">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div *ngIf="user?.is_admin && pendingSettlements.length" class="page-card">
+  <h3>Pending settlements</h3>
+  <div class="card-grid">
+    <div *ngFor="let s of pendingSettlements" class="booking-row">
+      <div class="row-top">
+        <strong>{{ s.user_email }}</strong>
+        <span class="badge pending">pending</span>
+      </div>
+      <div class="small-text">Amount: {{ formatRand(+s.amount) }}</div>
+      <div class="small-text">Requested {{ s.created_at | date:'medium' }}</div>
+      <div class="actions">
+        <button type="button" class="primary" (click)="approveSettlement(s)">Approve</button>
+        <button type="button" class="danger" (click)="rejectSettlement(s)">Reject</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div *ngIf="user?.is_admin && odometerMismatches.length" class="page-card">
+  <h3>Odometer mismatches</h3>
+  <div class="card-grid">
+    <div *ngFor="let b of odometerMismatches" class="booking-row">
+      <div class="row-top">
+        <strong>{{ b.user_email }}</strong>
+        <span class="badge rejected">mismatch</span>
+      </div>
+      <div class="small-text">{{ b.booking_date }} · {{ b.reason }}</div>
+      <div class="small-text">Expected start {{ b.odometer_mismatch_expected }} km · Entered {{ b.odometer_mismatch_actual }} km</div>
     </div>
   </div>
 </div>
@@ -167,6 +207,14 @@
         <span>Total distance (all trips)</span>
         <strong>{{ reportTotalKm }} km</strong>
       </div>
+      <div class="report-total">
+        <span>Settled amount</span>
+        <strong>{{ formatRand(reportSettledTotal) }}</strong>
+      </div>
+      <div class="report-total">
+        <span>Still owing</span>
+        <strong>{{ formatRand(reportOwingTotal) }}</strong>
+      </div>
       <div class="report-total landlord">
         <span>Landlord trips</span>
         <strong>{{ reportLandlordKm }} km</strong>
@@ -183,7 +231,10 @@
             <span class="user-name">{{ group.name }}</span>
           </span>
           <span class="user-right">
-            <span class="user-total">{{ group.totalKm }} km<span *ngIf="group.landlordKm > 0" class="landlord-hint"> · {{ group.landlordKm }} landlord</span></span>
+            <span class="user-total">
+              {{ group.totalKm }} km
+              <span class="landlord-hint"> · {{ formatRand(group.settledAmount) }} settled · {{ formatRand(group.owingAmount) }} owing</span>
+            </span>
             <svg class="chev" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
           </span>
         </button>
@@ -193,7 +244,10 @@
             <span class="trip-index">Trip {{ i + 1 }}</span>
             <span class="trip-date">{{ trip.date }}</span>
             <span class="trip-reason">{{ trip.reason }}</span>
-            <span class="trip-km">{{ trip.km != null ? trip.km + ' km' : 'pending' }}</span>
+            <span class="trip-km">
+              {{ trip.km != null ? trip.km + ' km' : 'pending' }}
+              <span *ngIf="trip.cost > 0"> · {{ formatRand(trip.cost) }} {{ trip.settled ? '(settled)' : '(owing)' }}</span>
+            </span>
           </div>
           <div class="trip-summary" *ngIf="group.landlordKm > 0">
             <span>Landlord trips for {{ group.name }}</span>
