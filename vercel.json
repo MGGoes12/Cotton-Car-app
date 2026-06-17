@@ -1,4 +1,9 @@
 {
   "buildCommand": "npm run build:vercel",
-  "outputDirectory": "dist/cotton-car-booking"
+  "outputDirectory": "dist/cotton-car-booking",
+  "functions": {
+    "api/notify.js": {
+      "maxDuration": 15
+    }
+  }
 }

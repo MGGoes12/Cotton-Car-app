@@ -205,15 +205,23 @@ export class SupabaseService {
 
   /** Bookings near a date for overlap checks (±1 day). */
   async getBookingsNearDate(bookingDate: string): Promise<Booking[]> {
-    const prev = this.addDays(bookingDate, -1);
-    const next = this.addDays(bookingDate, 1);
+    return this.getBookingsInDateRange(this.addDays(bookingDate, -1), this.addDays(bookingDate, 1));
+  }
+
+  /** Wider window for finding the previous driver's trip before handoff (±7 days). */
+  async getBookingsForHandoffCheck(bookingDate: string): Promise<Booking[]> {
+    return this.getBookingsInDateRange(this.addDays(bookingDate, -7), this.addDays(bookingDate, 1));
+  }
+
+  private async getBookingsInDateRange(fromDate: string, toDate: string): Promise<Booking[]> {
     const { data, error } = await (this.supabase
       .from('bookings')
       .select('*')
-      .gte('booking_date', prev)
-      .lte('booking_date', next)
+      .gte('booking_date', fromDate)
+      .lte('booking_date', toDate)
       .neq('status', 'rejected')
-      .order('booking_date', { ascending: true }) as any);
+      .order('booking_date', { ascending: true })
+      .order('start_time', { ascending: true }) as any);
     if (error) return [];
     return data || [];
   }

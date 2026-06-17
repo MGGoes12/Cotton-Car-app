@@ -106,7 +106,7 @@ export function findPrecedingHandoffBooking(all: HandoffBooking[], current: Hand
   let bestEnd = -Infinity;
 
   for (const b of all) {
-    if (b.id === current.id || b.status === 'rejected') continue;
+    if (b.id === current.id || b.status === 'rejected' || b.status === 'pending') continue;
     const { end } = bookingIntervalMinutes(b);
     if (end <= currentStart && end > bestEnd) {
       best = b;

@@ -116,9 +116,10 @@ function buildHtml(type, payload) {
   if (type === 'odometer_mismatch') {
     return `
       <h2>Odometer mismatch detected</h2>
-      <p><strong>User:</strong> ${esc(payload.userEmail)}</p>
+      <p><strong>Driver:</strong> ${esc(payload.userEmail)}</p>
       <p><strong>Trip date:</strong> ${esc(payload.bookingDate)}</p>
-      <p><strong>Expected start KM:</strong> ${esc(payload.expectedKm)} (from previous trip end)</p>
+      <p><strong>Previous driver:</strong> ${esc(payload.priorDriverEmail || 'unknown')}</p>
+      <p><strong>Expected start KM:</strong> ${esc(payload.expectedKm)} (end KM from previous trip)</p>
       <p><strong>Actual start KM entered:</strong> ${esc(payload.actualKm)}</p>
       <p>Please review the trip in the app.</p>
     `;

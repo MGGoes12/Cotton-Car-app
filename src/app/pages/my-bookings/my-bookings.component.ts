@@ -26,12 +26,13 @@ export class MyBookingsComponent implements OnInit {
   error = '';
   message = '';
   selectedBooking: Booking | null = null;
+  priorHandoffBooking: Booking | null = null;
   actualStartKm?: number;
   actualEndKm?: number;
   returnTime = '';
   odometerWarning = '';
   priorDriverWarning = '';
-  expectedStartKmFromLastTrip: number | null = null;
+  expectedStartKmFromPriorTrip: number | null = null;
   settling = false;
 
   formatTime = formatBookingTimeLabel;
@@ -43,6 +44,12 @@ export class MyBookingsComponent implements OnInit {
     private supabase: SupabaseService,
     private notify: NotifyService
   ) {}
+
+  get priorHandoffDriverLabel(): string {
+    if (!this.priorHandoffBooking?.user_email) return '';
+    const name = this.priorHandoffBooking.user_email.split('@')[0];
+    return ` (${name}'s trip)`;
+  }
 
   ngOnInit(): void {
     this.supabase.authUser$
@@ -131,27 +138,26 @@ export class MyBookingsComponent implements OnInit {
     this.returnTime = booking.return_time || '';
     this.odometerWarning = '';
     this.priorDriverWarning = '';
-    this.expectedStartKmFromLastTrip = null;
+    this.expectedStartKmFromPriorTrip = null;
+    this.priorHandoffBooking = null;
 
-    if (!this.user?.id) return;
-    const lastTrip = await this.supabase.getLastCompletedTrip(this.user.id, booking.id);
-    if (lastTrip?.actual_end_km != null) {
-      this.expectedStartKmFromLastTrip = lastTrip.actual_end_km;
-      this.checkOdometerMismatch();
+    const nearby = await this.supabase.getBookingsForHandoffCheck(booking.booking_date);
+    const prior = findPrecedingHandoffBooking(nearby, booking) as Booking | null;
+    this.priorHandoffBooking = prior;
+
+    if (!prior) return;
+
+    if (isMissingEndKm(prior)) {
+      const priorName = prior.user_email?.split('@')[0] || 'The previous driver';
+      this.priorDriverWarning =
+        `${priorName} has not entered end KMs for their trip (${formatBookingTimeLabel(prior)}). Admins will be notified when you save your start KM.`;
+      return;
     }
 
-    await this.checkPriorDriverEndKm(booking);
-  }
-
-  private async checkPriorDriverEndKm(booking: Booking) {
-    this.priorDriverWarning = '';
-    const nearby = await this.supabase.getBookingsNearDate(booking.booking_date);
-    const prior = findPrecedingHandoffBooking(nearby, booking);
-    if (!prior || !isMissingEndKm(prior)) return;
-
-    const priorName = prior.user_email?.split('@')[0] || 'The previous driver';
-    this.priorDriverWarning =
-      `${priorName} has not entered end KMs for their trip (${formatBookingTimeLabel(prior)}). Admins will be notified when you save your start KM.`;
+    if (prior.actual_end_km != null) {
+      this.expectedStartKmFromPriorTrip = prior.actual_end_km;
+      this.checkOdometerMismatch();
+    }
   }
 
   onActualStartKmChange() {
@@ -159,16 +165,24 @@ export class MyBookingsComponent implements OnInit {
   }
 
   private checkOdometerMismatch() {
-    if (this.expectedStartKmFromLastTrip == null || this.actualStartKm == null) {
+    if (this.expectedStartKmFromPriorTrip == null || this.actualStartKm == null) {
       this.odometerWarning = '';
       return;
     }
-    if (this.actualStartKm !== this.expectedStartKmFromLastTrip) {
+    if (this.actualStartKm !== this.expectedStartKmFromPriorTrip) {
       this.odometerWarning =
-        `Warning: your start KM (${this.actualStartKm}) does not match the end KM of your last trip (${this.expectedStartKmFromLastTrip}). Admins will be notified.`;
+        `Warning: your start KM (${this.actualStartKm}) does not match the end KM from the last trip (${this.expectedStartKmFromPriorTrip}${this.priorHandoffDriverLabel}). Admins will be notified.`;
       return;
     }
     this.odometerWarning = '';
+  }
+
+  private async sendNotify(type: Parameters<NotifyService['notifyAdmins']>[0], payload: Record<string, unknown>) {
+    const result = await this.notify.notifyAdmins(type, payload);
+    if (!result.ok) {
+      console.warn('Email notification failed:', result.error);
+    }
+    return result;
   }
 
   async saveOdometer() {
@@ -189,15 +203,15 @@ export class MyBookingsComponent implements OnInit {
       updates.status = 'completed';
     }
 
-    if (
-      completing &&
-      this.expectedStartKmFromLastTrip != null &&
+    const hasMismatch =
       this.actualStartKm != null &&
-      this.actualStartKm !== this.expectedStartKmFromLastTrip
-    ) {
+      this.expectedStartKmFromPriorTrip != null &&
+      this.actualStartKm !== this.expectedStartKmFromPriorTrip;
+
+    if (hasMismatch) {
       updates.odometer_mismatch = true;
-      updates.odometer_mismatch_expected = this.expectedStartKmFromLastTrip;
-      updates.odometer_mismatch_actual = this.actualStartKm;
+      updates.odometer_mismatch_expected = this.expectedStartKmFromPriorTrip!;
+      updates.odometer_mismatch_actual = this.actualStartKm!;
     }
 
     const bookingId = this.selectedBooking.id as string;
@@ -212,11 +226,13 @@ export class MyBookingsComponent implements OnInit {
       return;
     }
 
+    let notifyFailed = false;
+
     if (isFirstStartKmEntry && this.actualStartKm != null) {
-      const nearby = await this.supabase.getBookingsNearDate(bookingDate);
+      const nearby = await this.supabase.getBookingsForHandoffCheck(bookingDate);
       const prior = findPrecedingHandoffBooking(nearby, this.selectedBooking);
       if (prior && isMissingEndKm(prior) && prior.user_email !== userEmail) {
-        await this.notify.notifyAdmins('missing_prior_end_km', {
+        const r = await this.sendNotify('missing_prior_end_km', {
           userEmail,
           bookingDate,
           timeLabel: formatBookingTimeLabel(this.selectedBooking),
@@ -225,21 +241,28 @@ export class MyBookingsComponent implements OnInit {
           priorBookingDate: prior.booking_date,
           priorTimeLabel: formatBookingTimeLabel(prior)
         });
+        notifyFailed = notifyFailed || !r.ok;
       }
     }
 
-    if (updates.odometer_mismatch) {
-      await this.notify.notifyAdmins('odometer_mismatch', {
+    if (hasMismatch) {
+      const r = await this.sendNotify('odometer_mismatch', {
         userEmail,
         bookingDate,
         expectedKm: updates.odometer_mismatch_expected,
-        actualKm: updates.odometer_mismatch_actual
+        actualKm: updates.odometer_mismatch_actual,
+        priorDriverEmail: this.priorHandoffBooking?.user_email
       });
+      notifyFailed = notifyFailed || !r.ok;
     }
 
     this.message = completing ? 'Trip completed.' : 'Booking details updated.';
+    if (notifyFailed) {
+      this.message += ' (Admin email could not be sent — check Vercel env vars: RESEND_API, RESEND_FROM_EMAIL, SUPABASE_SERVICE_ROLE.)';
+    }
     this.error = '';
     this.selectedBooking = null;
+    this.priorHandoffBooking = null;
     this.odometerWarning = '';
     this.priorDriverWarning = '';
     await this.loadBookings();
@@ -268,7 +291,7 @@ export class MyBookingsComponent implements OnInit {
       return;
     }
 
-    await this.notify.notifyAdmins('settlement_request', {
+    await this.sendNotify('settlement_request', {
       userEmail: this.user?.email,
       amount: amount.toFixed(2),
       tripCount: items.length

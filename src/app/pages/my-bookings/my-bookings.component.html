@@ -115,8 +115,8 @@
         Actual start KM
         <input type="number" [(ngModel)]="actualStartKm" name="actualStartKm" (ngModelChange)="onActualStartKmChange()" />
       </label>
-      <p *ngIf="expectedStartKmFromLastTrip != null" class="small-text odometer-hint">
-        Last trip ended at {{ expectedStartKmFromLastTrip }} km.
+      <p *ngIf="expectedStartKmFromPriorTrip != null" class="small-text odometer-hint">
+        Last trip ended at {{ expectedStartKmFromPriorTrip }} km{{ priorHandoffDriverLabel }}.
       </p>
       <p *ngIf="priorDriverWarning" class="odometer-warning" role="alert">{{ priorDriverWarning }}</p>
       <p *ngIf="odometerWarning" class="odometer-warning" role="alert">{{ odometerWarning }}</p>
