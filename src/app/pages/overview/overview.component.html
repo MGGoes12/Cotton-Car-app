@@ -123,6 +123,14 @@
       </div>
       <div class="small-text">{{ b.booking_date }} · {{ b.reason }}</div>
       <div class="small-text">Expected start {{ b.odometer_mismatch_expected }} km · Entered {{ b.odometer_mismatch_actual }} km</div>
+      <div class="actions">
+        <button type="button" class="secondary" (click)="resolveOdometerMismatch(b, 'keep_entered')">
+          Keep entered ({{ b.odometer_mismatch_actual }} km)
+        </button>
+        <button type="button" class="primary" (click)="resolveOdometerMismatch(b, 'use_expected')">
+          Use expected ({{ b.odometer_mismatch_expected }} km)
+        </button>
+      </div>
     </div>
   </div>
 </div>

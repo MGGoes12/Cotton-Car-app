@@ -69,7 +69,7 @@
       <span class="badge" [ngClass]="booking.status">{{ booking.status }}</span>
     </div>
     <div class="small-text">{{ booking.reason }}</div>
-    <p *ngIf="booking.odometer_mismatch" class="odometer-flag" role="alert">
+    <p *ngIf="booking.odometer_mismatch && !booking.odometer_mismatch_resolved" class="odometer-flag" role="alert">
       Odometer mismatch flagged (expected {{ booking.odometer_mismatch_expected }}, entered {{ booking.odometer_mismatch_actual }}).
     </p>
 

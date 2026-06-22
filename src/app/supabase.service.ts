@@ -39,6 +39,7 @@ export interface Booking {
   odometer_mismatch?: boolean;
   odometer_mismatch_expected?: number | null;
   odometer_mismatch_actual?: number | null;
+  odometer_mismatch_resolved?: boolean;
   created_at?: string;
   updated_at?: string;
 }
@@ -481,9 +482,41 @@ export class SupabaseService {
       .from('bookings')
       .select('*')
       .eq('odometer_mismatch', true)
+      .eq('odometer_mismatch_resolved', false)
       .order('booking_date', { ascending: false }) as any);
     if (error) return [];
     return data || [];
+  }
+
+  async resolveOdometerMismatch(
+    bookingId: string,
+    action: 'keep_entered' | 'use_expected'
+  ): Promise<{ error?: string }> {
+    const user = this.authUser$.getValue();
+    if (!user?.is_admin) {
+      return { error: 'Only admins can resolve odometer mismatches.' };
+    }
+
+    const { data: booking, error: loadError } = await (this.supabase
+      .from('bookings')
+      .select('*')
+      .eq('id', bookingId)
+      .eq('odometer_mismatch', true)
+      .eq('odometer_mismatch_resolved', false)
+      .single() as any);
+
+    if (loadError || !booking) {
+      return { error: 'Mismatch not found or already resolved.' };
+    }
+
+    const updates: Partial<Booking> = { odometer_mismatch_resolved: true };
+    if (action === 'use_expected' && booking.odometer_mismatch_expected != null) {
+      updates.actual_start_km = booking.odometer_mismatch_expected;
+    }
+
+    const { error } = await (this.supabase.from('bookings').update(updates).eq('id', bookingId) as any);
+    if (error) return { error: error.message };
+    return {};
   }
 
   async requestSettlement(

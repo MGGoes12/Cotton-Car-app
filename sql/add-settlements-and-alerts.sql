@@ -5,7 +5,8 @@ alter table bookings
   add column if not exists settled_in_settlement_id uuid,
   add column if not exists odometer_mismatch boolean not null default false,
   add column if not exists odometer_mismatch_expected integer,
-  add column if not exists odometer_mismatch_actual integer;
+  add column if not exists odometer_mismatch_actual integer,
+  add column if not exists odometer_mismatch_resolved boolean not null default false;
 
 create table if not exists settlement_requests (
   id uuid primary key default gen_random_uuid(),

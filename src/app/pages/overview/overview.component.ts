@@ -338,6 +338,30 @@ export class OverviewComponent implements OnInit {
     await this.loadAdminAlerts();
   }
 
+  async resolveOdometerMismatch(booking: Booking, action: 'keep_entered' | 'use_expected') {
+    if (!booking.id) return;
+    this.error = '';
+    this.message = '';
+
+    const label =
+      action === 'use_expected'
+        ? `use expected start KM (${booking.odometer_mismatch_expected})`
+        : `keep entered start KM (${booking.odometer_mismatch_actual})`;
+
+    if (!confirm(`Resolve mismatch for ${booking.user_email} and ${label}?`)) {
+      return;
+    }
+
+    const result = await this.supabase.resolveOdometerMismatch(booking.id, action);
+    if (result.error) {
+      this.error = result.error;
+      return;
+    }
+
+    this.message = `Odometer mismatch resolved for ${booking.user_email}.`;
+    await this.loadAdminAlerts();
+  }
+
   closeReport() {
     this.showReport = false;
   }
